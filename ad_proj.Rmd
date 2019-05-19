@@ -114,14 +114,14 @@ length(which(abs(cor(db)) > 0.3)) - 11
 scatterplotMatrix(db)
 ```
 
-S'observa, tant en la matriu de correlacions com en el plot de les variables que, en general, no hi ha correlació entre elles. De fet, la majoria de valors de la matriu de correlació són inferiors a 0.3. Només hi ha 4 casos que cal destacar:
+S'observa, tant en la matriu de correlacions com en el plot de les variables que, en general, **no hi ha correlació entre elles**. De fet, la majoria de valors de la matriu de correlació són inferiors a 0.3. Només hi ha 4 casos que cal destacar:
 
 - $\texttt{fixed.acidity}$ i $\texttt{density}$ estan positivament correlades: 0.697.
 - $\texttt{fixed.acidity}$ i $\texttt{pH}$ estan negativament correlades: 0.714.
 - $\texttt{fixed.acidity}$ i $\texttt{citric.acid}$ estan positivament correlades: 0.697.
 - $\texttt{free.sulfur.dioxide}$ i $\texttt{free.sulfur.dioxide}$ estan positivament correlades: 0.646.
 
-Ara bé, en cap d'aquests casos la correlació entre les variables en qüestió és major que 0.75. És a dir, que no són correlacions molt clares.
+Ara bé, en cap d'aquests casos la correlació entre les variables en qüestió és major que 0.75. És a dir, que no són correlacions molt clares. Calculem ara els components principals que s'han explicat a l'apartat anterior.
 
 ```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
 library(car)
@@ -130,13 +130,18 @@ library(ade4)
 
 pca.out <- princomp(db, cor = T)
 summary(pca.out)
-
 ```
+
+S'observa que, per a explicar almenys un 80% de la variabilitat de les dades, es necessiten almenys **5 components principals**, tot i que el cinquè ja té un valor propi menor que 1. Això és degut a què, com s'ha vist a la matriu de correlacions, les variables són força independents, amb pocs casos de correlacions importants, cosa que implica que no podem reduir molt el nombre de variables. Una altra aspecte a destacar és que **no hi ha cap valor propi nul**, fet que ens indica que no hi ha cap variable que sigui combinació lineal directe de les altres.
+
+A continuació es presenta la representació *biplot* corresponent a aquests components principals.
 
 ```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
-biplot(pca.out, xlabs = rep(".", nrow(db)))
+biplot(pca.out, xlabs = rep(".", nrow(db), col = "black"))
 screeplot(pca.out)
 ```
+
+El primer que cal dir d'aquesta representació és que només explica el 47.47% de la variabilitat de les dades, ja que s'hi veuen representats només els dos primers components principals. Així doncs, aquesta representació no és del tot fiable. Alguns fets que ho demostres són que
 
 # Inferència Multivariant
 
