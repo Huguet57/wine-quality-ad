@@ -1,0 +1,121 @@
+---
+title: 'PROJECTE ANÀLISI DE DADES: Wine Quality'
+author: "David Anglada Rotger i Andreu Huguet Segarra"
+date: "17/5/2019"
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+
+fig_width: 5
+fig_height: 3 
+---
+
+# Introducció
+
+Avui en dia, el rang de consumidors del vi s'ha amplitat moltíssims, convertint-se amb una beguda que es pot trobar a totes les cases i, fins i tot, comparable amb la cervesa. Això ha provocat que l'interés per aquest producte hagi augmentat els darrers anys, provocant també un creixement de la indústria de la vineria. Com a conseqüència, el nombre d'investigacions i estudis que tenen com a finalitat la millora de la qualitat del vi o la pujada de les seves vendes s'ha disparat.
+
+Un dels temes que preocupa més a aquest sector és la **certificació de qualitat**, un aspecte que depèn profundament de la catació i valoració d'enòlegs experts. Així doncs, la finalitat d'aquest estudi és estudiar quines variables afecten més a la qualitat final del vi i de quina manera influeixen.
+
+Donat que algunes d'aquestes variables es poden controlar durant el procés de producció, serà interessant veure les que influeixen possitivament amb l'objectiu de potenciar-les, o detectar les que influeixen negativament per poder intentar neutralitzar el seu efecte.
+
+# Descripció de la Base de Dades
+
+Per la realització d'aquest estudi es disposa d'una base de dades amb 1599 entrades diferents. Cada una es correspon amb la certificació de qualitat d'un vi en particular (en particular, la base de dades la formen mostres de *vinho verde*, un dels vins més importants de tot Portugal), acompanyat de 11 variables fisicoquímiques més. Aquestes variables són el resultat de tests objectius, menys la variable resposta, la qualitat, que és la mitjana de la valoració de 3 enòlegs experts. Cada expert va otorgar una puntuació entre el 0 (dolent) al 10 (excel.lent).
+
+Les 12 variables del *dataset* són les següents:
+
+- **fixed.acidity**: Acidesa fixada.
+- **volatile.acidity**: Acidesa volàtil.
+- **citric.acid**: Àcid cítric.
+- **residual.sugar**: Sucre residual.
+- **chlorides**: Clorurs.
+- **free.sulfur.dioxide**: Diòxid de sofre lliure.
+- **total.sulfur.dioxide**: Totat de diòxid de sofre.
+- **density**: Densitat.
+- **pH**: pH.
+- **sulphates**: Sulfats.
+- **alcohol**: Alcohol.
+- **quality**: Qualitat. *Variable resposta*.
+
+Pel que fa als *missing values*, no n'hi ha cap en aquesta base de dades, tal i com s'indica a la seva descripció oficial.
+
+Abans de res, s'observen les característiques de cada una de les variables i els resultats són els següents.
+
+```{r echo = FALSE}
+X <- read.csv2("winequality-red.csv")
+summary(X[,-12])
+```
+
+En general, tots els valors semblen normals. L'únic que crida l'atenció és que les variables $\texttt{residual.sugar}$, $\texttt{chlorides}$, $\texttt{sulphates}$ i $\texttt{total.sulfur.dioxide}$ prenen valors molt concentrats a l'extrem esquerre, ja que el tercer quartil i la mediana estan molt allunyats del màxim. Això pot voler dir que hi ha algun outlier que convé eliminar perquè no afecti al nostre anàlisi. Per detectar-ho, es realitza un $\texttt{boxplot}$ d'aquestes variables.
+
+```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
+par(mfrow=c(2,4))
+
+boxplot(X[,5], main = "chlorides")
+a <- which(X$chlorides > 0.15 | X$chlorides < 0.02)
+
+boxplot(X[,4], main = "residual.sugar")
+b <- which(X$residual.sugar > 5 | X$residual.sugar < 1)
+
+boxplot(X[,7], main = "total.sulfur.dioxide")
+c <- which(X$total.sulfur.dioxide > 150)
+
+boxplot(X[,10], main = "sulphates")
+d <- which(X$sulphates > 1.2)
+
+outliers <- union(union(union(a,b),c),d)
+
+cat("Total outliers = ")
+length(outliers)
+
+cat("% Outliers = ")
+length(outliers)/1599 * 100
+```
+
+S'observa que, com era d'esperar, hi ha nombrosos *outliers* en aquestes variables. Donat que el total d'outliers suposa el 10% de les dades, es procedeix a eliminar-los per evitar possibles influències negatives en l'anàlisi. S'observa ara que els valors de les variables estan més repartits.
+
+```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
+X <- X[-outliers,]
+
+par(mfrow=c(2,4))
+
+boxplot(X[,5], main = "chlorides")
+boxplot(X[,4], main = "residual.sugar")
+boxplot(X[,7], main = "total.sulfur.dioxide")
+boxplot(X[,10], main = "sulphates")
+```
+
+# Anàlisi de Components Principals (PCA)
+
+## Breu síntesi
+
+El primer anàlisi que de les dades que es farà és l'**Anàlisi de Components  (PCA)**. Els objectius fonamentals d'aquest estudi són reduir el nombre de variables i realitzar una representació en dues dimensions de les dades (__*biplot*__). El que es busca són combinacions lineals de les variables de la forma $F_i = a_{i1}X_1 + \cdots + a_{1N}X_pN$ tal que $F_1, \cdots, F_N$ (components principals) no estiguin correlats. Aquestes combinacions lineals ens les dóna la descomposició espectral de la matriu de les dades $F = X A$, on A és la matriu de vectors principals. Una vegada calculats aquests components, ens quedarem amb els suficients per explicar un 80% de la variància de les dades o, en el nostre cas, amb els que tinguin un **valor propi major que 1**.
+
+Una vegada feta aquesta descomposició, es pot fer el __*biplot*__ de les dades a partir de $X = FA$. En aquesta representació, val a dir que les distàncies euclidianes entre els punts aproximen les distàncies Mahalanobis entre les observacions reals. A més, la llargada de les fletxes que representen cada variable és una estimació de la seva desviació estàndard. Ara bé, un dels aspectes més interesants és que l'**angle** entre les diferents fletxes representa una estimació de la correlació entre les dues variables, és a dir:
+
+- Si dues fletxes són gairebé paral·leles i amb el mateix sentit, les variables estaran correlades positivament.
+- Si dues fletxes són gairebé paral·leles i amb sentits oposats, les variables estaran correlades negativament.
+- Si dues fletxes són gairebé ortogonals, les variables no estaran correlades.
+
+Un altre aspecte a tenir en compte, és si s'utilitza la matriu de covariàncies o la de correlacions pels càlculs. Donat que aquestes dades tenen variables amb unitats de mesura diferents, s'utilitzarà la **matriu de correlacions** (motiu pel qual ens quedarem amb els components principals amb valors propis majors que 1), que és invariant respencte les unitats de mesura.
+
+En resum, els objectius d'aquest anàlisi seràn la representació __*biplot*__ de les dades, la **correlació** entre les variables de la base de dades i els diferents **coeficients** dels components principals més representatius, ja que serà un indicador de les variables més importants.
+
+## Aplicació a les nostres dades.
+
+En primer lloc, es calcula la matriu de correlacions de les dades, així com el seu *scatter plot* per observar aquestes correlacions.
+
+```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
+
+```
+
+# Inferència Multivariant
+
+# Anàlisi Discriminant (LDA/QDA)
+
+# Anàlisi clúster
+
+# Conclusions
+
+# Referències
