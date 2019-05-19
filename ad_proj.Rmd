@@ -110,7 +110,10 @@ db <- X[,-12]
 cor(db)
 length(which(abs(cor(db)) > 0.3)) - 11
 ```
-```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
+```{r echo = FALSE, fig.align = "center"}
+library(car)
+library(FactoMineR)
+library(ade4)
 scatterplotMatrix(db)
 ```
 
@@ -124,9 +127,7 @@ S'observa, tant en la matriu de correlacions com en el plot de les variables que
 Ara bé, en cap d'aquests casos la correlació entre les variables en qüestió és major que 0.75. És a dir, que no són correlacions molt clares. Calculem ara els components principals que s'han explicat a l'apartat anterior.
 
 ```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
-library(car)
-library(FactoMineR)
-library(ade4)
+
 
 pca.out <- princomp(db, cor = T)
 summary(pca.out)
