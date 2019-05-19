@@ -141,7 +141,9 @@ biplot(pca.out, xlabs = rep(".", nrow(db), col = "black"))
 screeplot(pca.out)
 ```
 
-El primer que cal dir d'aquesta representació és que només explica el 47.47% de la variabilitat de les dades, ja que s'hi veuen representats només els dos primers components principals. Així doncs, aquesta representació no és del tot fiable. Alguns fets que ho demostres són que
+El primer que cal dir d'aquesta representació és que només explica el 47.47% de la variabilitat de les dades, ja que s'hi veuen representats només els dos primers components principals. Així doncs, aquesta representació no és del tot fiable. Alguns fets que ho demostres són que, per exemple, les fletxes de les varaibles $\texttt{residual.sugar}$ i $\texttt{density}$ són pràcticament paral.leles i, en canvi, la correlació entre aquestes dues varaibles és de 0.377. Això podria ser degut a què els 2 primers components principals no representen gaire la variabilitat d'aquestes variables i es centren més en altres.
+
+Tot i així, es veur representada molt representada la correlació negativa de la variable $\texttt{fixed.acidity}$ i $\texttt{pH}$, fet que pot voler dir que tenen gran part de la seva variància explicada pels dos primers components. El mateix passsa amb la correlació positiva de $\texttt{fixed.acidity}$ i $\texttt{citric.acid}$.
 
 # Inferència Multivariant
 
