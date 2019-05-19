@@ -49,7 +49,7 @@ summary(X[,-12])
 
 En general, tots els valors semblen normals. L'únic que crida l'atenció és que les variables $\texttt{residual.sugar}$, $\texttt{chlorides}$, $\texttt{sulphates}$ i $\texttt{total.sulfur.dioxide}$ prenen valors molt concentrats a l'extrem esquerre, ja que el tercer quartil i la mediana estan molt allunyats del màxim. Això pot voler dir que hi ha algun outlier que convé eliminar perquè no afecti al nostre anàlisi. Per detectar-ho, es realitza un $\texttt{boxplot}$ d'aquestes variables.
 
-```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
+```{r echo = FALSE, fig.align = "center", out.height='70%', out.width='70%'}
 par(mfrow=c(2,4))
 
 boxplot(X[,5], main = "chlorides")
@@ -75,7 +75,7 @@ length(outliers)/1599 * 100
 
 S'observa que, com era d'esperar, hi ha nombrosos *outliers* en aquestes variables. Donat que el total d'outliers suposa el 10% de les dades, es procedeix a eliminar-los per evitar possibles influències negatives en l'anàlisi. S'observa ara que els valors de les variables estan més repartits.
 
-```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
+```{r echo = FALSE, fig.align = "center", out.height='70%', out.width='70%'}
 X <- X[-outliers,]
 
 par(mfrow=c(2,4))
@@ -102,12 +102,40 @@ Un altre aspecte a tenir en compte, és si s'utilitza la matriu de covariàncies
 
 En resum, els objectius d'aquest anàlisi seràn la representació __*biplot*__ de les dades, la **correlació** entre les variables de la base de dades i els diferents **coeficients** dels components principals més representatius, ja que serà un indicador de les variables més importants.
 
-## Aplicació a les nostres dades.
-
-En primer lloc, es calcula la matriu de correlacions de les dades, així com el seu *scatter plot* per observar aquestes correlacions.
+## PCA de les nostres dades.
+Abans de res, es construeix un nou *dataset* eliminant la variable resposta, és a dir, la variable $\texttt{quality}$. Tot seguit, es calcula la matriu de correlacions de les dades, així com el seu *scatter plot* per observar aquestes correlacions.
 
 ```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
+db <- X[,-12]
+cor(db)
+length(which(abs(cor(db)) > 0.3)) - 11
+```
+```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
+scatterplotMatrix(db)
+```
 
+S'observa, tant en la matriu de correlacions com en el plot de les variables que, en general, no hi ha correlació entre elles. De fet, la majoria de valors de la matriu de correlació són inferiors a 0.3. Només hi ha 4 casos que cal destacar:
+
+- $\texttt{fixed.acidity}$ i $\texttt{density}$ estan positivament correlades: 0.697.
+- $\texttt{fixed.acidity}$ i $\texttt{pH}$ estan negativament correlades: 0.714.
+- $\texttt{fixed.acidity}$ i $\texttt{citric.acid}$ estan positivament correlades: 0.697.
+- $\texttt{free.sulfur.dioxide}$ i $\texttt{free.sulfur.dioxide}$ estan positivament correlades: 0.646.
+
+Ara bé, en cap d'aquests casos la correlació entre les variables en qüestió és major que 0.75. És a dir, que no són correlacions molt clares.
+
+```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
+library(car)
+library(FactoMineR)
+library(ade4)
+
+pca.out <- princomp(db, cor = T)
+summary(pca.out)
+
+```
+
+```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
+biplot(pca.out, xlabs = rep(".", nrow(db)))
+screeplot(pca.out)
 ```
 
 # Inferència Multivariant
