@@ -146,6 +146,14 @@ El primer que cal dir d'aquesta representació és que només explica el 47.47% 
 
 Tot i així, es veur representada molt representada la correlació negativa de la variable $\texttt{fixed.acidity}$ i $\texttt{pH}$, fet que pot voler dir que tenen gran part de la seva variància explicada pels dos primers components. El mateix passsa amb la correlació positiva de $\texttt{fixed.acidity}$ i $\texttt{citric.acid}$.
 
+A continuació, s'analitzen els coeficients dels components principals, per veure quines variables expliquen més.
+
+```{r echo = FALSE}
+pca.out$loadings
+```
+
+S'observa, com havíem intuït amb el *biplot*, que el primer component representa sobretot la variable $\texttt{fixed.acidity}$. També les variables $\texttt{citric.acid}$, $\texttt{density}$ i $\texttt{pH}$. Això explica que les correlacions que havíem destacat abans es vegin prou representades en el biplot. Una fet que crida l'atenció és que la component que més representa la variable  $\texttt{residual.sugar}$ és la tercera. Això explica que la seva representació en el biplot no fos fiable. Un altre fet destacable és que les variables $\texttt{free.sulfur.dioxide}$ i $\texttt{total.sulfur.dioxide}$ no tenen representació en el primer component.
+
 # Inferència Multivariant
 
 # Anàlisi Discriminant (LDA/QDA)
