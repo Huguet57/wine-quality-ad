@@ -3,12 +3,14 @@ title: 'PROJECTE ANÀLISI DE DADES: Wine Quality'
 author: "David Anglada Rotger i Andreu Huguet Segarra"
 date: "17/5/2019"
 output:
+  html_document:
+    df_print: paged
+    toc: yes
   pdf_document:
-    toc: true
-    number_sections: true
-
+    number_sections: yes
+    toc: yes
 fig_width: 5
-fig_height: 3 
+fig_height: 3
 ---
 
 # Introducció
@@ -127,8 +129,6 @@ S'observa, tant en la matriu de correlacions com en el plot de les variables que
 Ara bé, en cap d'aquests casos la correlació entre les variables en qüestió és major que 0.75. És a dir, que no són correlacions molt clares. Calculem ara els components principals que s'han explicat a l'apartat anterior.
 
 ```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
-
-
 pca.out <- princomp(db, cor = T)
 summary(pca.out)
 ```
@@ -157,6 +157,116 @@ S'observa, com havíem intuït amb el *biplot*, que el primer component represen
 # Inferència Multivariant
 
 # Anàlisi Discriminant (LDA/QDA)
+
+L'anàlisi de discriminant lineal (LDA en anglès) consisteix en trobar una funció discriminant tal que decideixi a quina classe $C_k$ pertany una observació $x$.
+En LDA, assumim que les dades de les diferents $k$ classes provenen d'una distribució gaussiana i la seva funció de densitat es pot escriure com:
+$$
+f_k(x) = \frac{1}{\sqrt{2\pi\sigma}} \exp(-\frac{1}{2\sigma^2}(x-\mu_k)^2)
+$$
+
+Per cada classe $k$, on $\mu_k$ és la mitjana de la classe $k$ i $\sigma$ és la variància comuna de totes les dades (un altre requisit que assumim quan fem LDA).
+El mètode assigna cada observació $x$ a la classe la qual $P_k(x)$ sigui major.
+Per aquesta tasca de maximització podem considerar la tasca equivalent de trobar el màxim prenent el logaritme i aleshores ens queda la funció discriminant que volíem:
+\[
+\delta_k(x) = x\frac{\mu_k}{\sigma^2} - \frac{\mu_k^2}{2\sigma^2} + \log(\pi_k)
+\]
+Com veiem, és una funció lineal en $x$.
+
+En el nostre cas, però, ens interesseran les dades de distribucions Guassianes multivariants. L'equació del discriminant canvia introduïnt-hi notació vectorial:
+\[
+\delta_k(\mathbf{x}) = \mathbf{x}^\top \Sigma^{-1} \vec{\mu_k} - \frac{1}{2}\; \vec{\mu_k}^\top\; \Sigma^{-1}\; \vec{\mu_k} + \log(\vec{\pi_k})
+\]
+
+```{r}
+quality <- X[,12]
+X <- data.matrix(db)
+df <- data.frame(X[,-12])
+
+D <- ncol(df)
+N <- nrow(df)
+
+df <- scale(df, center = TRUE, scale = TRUE)
+```
+
+Veiem això en R. Farem el LDA amb la llibreria $\texttt{MASS}$. Introduirem una nova variable $\texttt{quality.section}$ que agruparà els vins en dolents (qualificació entre 0 i 3), mediocres (entre 4 i 6) i bons (entre 7 i 10).
+
+```{r echo=FALSE}
+## Feature extraction
+quality.low <- which(quality <= 4)
+quality.med <- which(4 < quality & quality < 7)
+quality.high <- which(7 <= quality)
+
+quality.section <- rep(NA, N)
+quality.section[quality.low] <- 0
+quality.section[quality.med] <- 1
+quality.section[quality.high] <- 2
+
+hist(quality.section,
+     breaks = seq(-0.5, 2.5, by = 1))
+```
+
+```{r}
+library(MASS)
+lda.out <- lda(quality.section ~ X)
+lda.out$means
+```
+
+Com veiem, les mitjanes de totes les variables excepte $\texttt{density}$ són prou diferenciades. Podem veure com de bé ha discriminat el LDA amb la matriu de confusió:
+```{r}
+lda.pred <- predict(lda.out)
+(lda.confusiontable <- table(quality.section, lda.pred$class))
+sum(diag(lda.confusiontable))/sum(lda.confusiontable)
+```
+
+Veiem que distingeix perfectament els vins bons dels dolents però entre mediocres i els extrems hi ha més discrepància.
+Això es deu a la gran predominància de vins mediocres dins les dades, que els ha donat un paper principal i l'anàlisi s'ha centrat a obtenir millors resultats agrupant vins mediocres.
+Podríem baixar aquest biaix igualant les dades dels tres conjunts mitjançant la reducció de la classe mediocre i fer múltiples models amb les diferents dades.
+```{r echo=FALSE}
+summary(as.factor(quality.section))
+N.dolents <- length(which(quality.section == 0))
+N.mediocres <- length(which(quality.section == 1))
+N.bons <- length(which(quality.section == 2))
+
+random.mediocres <- quality.med[floor(runif(N.dolents, 1, N.mediocres + 1))]
+random.bons <- quality.high[floor(runif(N.dolents, 1, N.bons + 1))]
+
+quality.lite.index <- c(quality.low,
+                        random.mediocres,
+                        random.bons)
+
+quality.lite <- quality[quality.lite.index]
+N.lite <- length(quality.lite.index)
+
+## Feature extraction
+quality.lite.low <- which(quality.lite <= 4)
+quality.lite.med <- which(4 < quality.lite & quality.lite < 7)
+quality.lite.high <- which(7 <= quality.lite)
+
+quality.lite.section <- rep(NA, N.lite)
+quality.lite.section[quality.lite.low] <- 0
+quality.lite.section[quality.lite.med] <- 1
+quality.lite.section[quality.lite.high] <- 2
+
+X.lite <- X[quality.lite.index, ]
+hist(quality.lite.section,
+     breaks = seq(-0.5, 2.5, by = 1))
+```
+
+Ara, amb aquesta nova distribució més equitativa de les dades, tornem a fer un LDA.
+
+```{r}
+df.lite <- data.frame(X.lite)
+lda.lite.out <- lda(quality.lite.section ~ ., df.lite)
+lda.lite.out$means
+```
+
+Veiem com ha funcionat ara:
+```{r}
+lda.lite.pred <- predict(lda.lite.out)
+(lda.lite.confusiontable <- table(quality.lite.section, lda.lite.pred$class))
+sum(diag(lda.lite.confusiontable))/sum(lda.lite.confusiontable)
+```
+
 
 # Anàlisi clúster
 
