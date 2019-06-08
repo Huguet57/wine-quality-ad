@@ -45,7 +45,8 @@ Pel que fa als *missing values*, no n'hi ha cap en aquesta base de dades, tal i 
 Abans de res, s'observen les característiques de cada una de les variables i els resultats són els següents.
 
 ```{r echo = FALSE}
-X <- read.csv2("winequality-red.csv")
+Xid <- read.csv2("./data/winequality-red.csv")
+X <- Xid[,-1]
 summary(X[,-12])
 ```
 
@@ -277,6 +278,64 @@ sum(diag(lda.lite.confusiontable))/sum(lda.lite.confusiontable)
 
 # Anàlisi clúster
 
+## Breu síntesi
+
+Un altre dels anàlisis que realitzarem sobre les dades és l'**Anàlisi Clúster**, l'anàlisi d'agrupaments. Tal i com indica el seu nom, amb aquest estudi es buscaran els grups naturals que hi ha dins de les dades. Aquests grups estan formats per observacions "semblants" entre elles, on aquest nivell de semblança s'ha de definir prèviament i s'ha d'entendre com la distància entre les observacions. A més, aquest estudi ens permet reduir el conjunt de dades de $n$ observacions a $k$ grups prou semblans.
+
+Pel que fa als algoritmes que s'utilitzen per trobar aquests grups, bàsicament els dividirem en 3 tipus: **jeràrquics**, **no jeràrquics** i els mètodes __*model-based*__. En relació als primers, val a dir que, un cop una observació s'ha assignat a un grup, ja no canvia de grup. L'algoritme més utilitzat és l'**aglomeració jeràrquica**, que simplement va ajuntant a cada pas les observacions/grups que estiguin a menor distància. Pel càlcul de la distància entre dos grups ja creats, es pot considerar:
+
+- **Single linkage**: La distància entre les observacions més properes entre els dos grups. Sensible als outliers.
+- **Complete linkage**: La distància entre les observacions més llunyanes entre els dos grups. Sensible als outliers.
+- **Average linkage**: La mitjana de la distància entre les observacions dels dos grups. Menys sensible als outliers.
+- **Centroid distance**: Es defineix la distància entre grups com $d_{rs}^2 = \sum_{j=1}^p (\bar{x}_{rj} - \bar{x}_{sj})^2$, on $r$ i $s$ són els dos grups. Menys sensible als outliers.
+- **Ward's criterion**: Es defineix $\Delta = \frac{n_r n_s}{n_r + n_s}d_{rs}^2$ i s'agrupen els dos grups amb $\Delta$ mínim. Menys sensible als outliers.
+
+Per altra banda, en els algoritmes **no jeràrquics**, una observació pot anar canviant de grup a mesura que avança el procediment. L'algoritme més utilitzat en aquest cas és el __*K-Means*__. La idea és anar calculant pas a pas els centres de cada grup i anar ajustant-los a les dades. Es comença amb un conjunt de centres aleatòri i s'assignen les observacions més properes a cada centre. A cada pas es recalculen els centres i es reassignen les dades. Quan en un pas ja no hi ha més reassignacions, s'acaba. En nombre de grups $K$ és fixat.
+
+Per últim, així com tant els algoritmes jeràrquics o no jeràrquics no feien cap tipus d'assumpció sobre la distribució de les dades, en els mètodes **model-based** s'utilitzen models probabilísics concrets per agrupar les dades. La idea és que s'entenen les dades com un *finite mixture model* 
+
+$$ g(x|\pi, \theta) = \pi_1f_1(x|\theta_1) + \cdots + \pi_kf_k(x|\theta_k)$$
+
+on les $f_i$ són les distribucions de probabilitat de cada un dels $k$ grups, que normalment es té $f_i$ ~ $N(\mu, \Sigma)$. A partir d'aquesta assumpció, es calculen les probabilitats de que cada observació $x_i$ pertanyi al grup $i$ com
+
+$$ \frac{\pi_i f_i(x_j|\theta_i)}{\sum_{i=1}^k \pi_i f_i(x_j|\theta_i)} $$
+
+El procediment en aquests algoritmes probabilístics és estimar el *finite mixture model* amb màxima versemblança, calcular les probabilitats *a-posteriori* de cada observació a cada grup i assignar-la al grup on tingui una probabilitat més elevada.
+
+## Anàlisi Clúster de les nostres dades
+
+Tal i com ja s'havia fet abans, s'utilitzarà un *dataset* on s'ha extret la variable resposta $\texttt{quality}$. El primer que es fa és l'estandarització de les dades per aconseguir que totes tinguin mitjana zero, anomenada $X_s$. A continuació, es calcula la matriu de distàncies $D$ euclidianes entre les observacions de les dades i s'observa que la distància més gran és 12.98895.
+
+```{r echo=FALSE}
+Xs <- scale(db)
+D <- dist(Xs, method = "euclidean")
+```
+
+
+A continuació, es procedeix a realitzar-se l'anàlisi clúster de les dades amb cada un dels mètodes explicats a l'apartat anterior.
+
+### Anàlisi Cluster Jeràrquic
+
+```{r}
+library(dendextend)
+library(zoom)
+#par(mfrow=c(2,2))
+names <- X[,ncol(X)]
+closest.neigh <- as.dendrogram(hclust(D, method = "single"))
+labels(closest.neigh) <- apply(Xid[,c(1,ncol(X))], 1, paste, collapse = "_")[order.dendrogram(closest.neigh)]
+closest.neigh <- set(closest.neigh, "labels_cex", 0.6)
+plot(closest.neigh, main="Single linkage", horiz = T)
+zm()
+```
+
+```
+farthest.neigh <- hclust(D, method = "complete")
+plot(farthest.neigh, main="Complete linkage",  col = X$quality)
+average.neigh <- hclust(D, method = "average")
+plot(average.neigh, main="Average linkage", col = X$quality)
+ward.neigh <- hclust(D, method = "ward.D2")
+plot(ward.neigh, main="Ward's linkage", col = X$quality)
+```
 
 
 # Conclusions
