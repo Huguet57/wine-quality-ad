@@ -105,6 +105,7 @@ Un altre aspecte a tenir en compte, és si s'utilitza la matriu de covariàncies
 En resum, els objectius d'aquest anàlisi seràn la representació __*biplot*__ de les dades, la **correlació** entre les variables de la base de dades i els diferents **coeficients** dels components principals més representatius, ja que serà un indicador de les variables més importants.
 
 ## PCA de les nostres dades.
+
 Abans de res, es construeix un nou *dataset* eliminant la variable resposta, és a dir, la variable $\texttt{quality}$. Tot seguit, es calcula la matriu de correlacions de les dades, així com el seu *scatter plot* per observar aquestes correlacions.
 
 ```{r echo = FALSE, fig.align = "center", out.height='50%', out.width='50%'}
@@ -158,26 +159,32 @@ S'observa, com havíem intuït amb el *biplot*, que el primer component represen
 
 # Anàlisi Discriminant (LDA/QDA)
 
-L'anàlisi de discriminant lineal (LDA en anglès) consisteix en trobar una funció discriminant tal que decideixi a quina classe $C_k$ pertany una observació $x$.
+## Breu síntesi
+
+En segon lloc, es farà un **Anàlisi Discriminant (LDA/QDA)**. Els objectius principals d'aquest estudi són  L'anàlisi de discriminant lineal (LDA en anglès) consisteix en trobar una funció discriminant tal que decideixi a quina classe $C_k$ pertany una observació $x$.
+
 En LDA, assumim que les dades de les diferents $k$ classes provenen d'una distribució gaussiana i la seva funció de densitat es pot escriure com:
 $$
 f_k(x) = \frac{1}{\sqrt{2\pi\sigma}} \exp(-\frac{1}{2\sigma^2}(x-\mu_k)^2)
 $$
 
-Per cada classe $k$, on $\mu_k$ és la mitjana de la classe $k$ i $\sigma$ és la variància comuna de totes les dades (un altre requisit que assumim quan fem LDA).
-El mètode assigna cada observació $x$ a la classe la qual $P_k(x)$ sigui major.
-Per aquesta tasca de maximització podem considerar la tasca equivalent de trobar el màxim prenent el logaritme i aleshores ens queda la funció discriminant que volíem:
-\[
+on, per cada classe $k$, $\mu_k$ és la mitjana de la classe $k$ i $\sigma$ és la variància comuna de totes les dades (un altre requisit que assumim quan fem LDA).
+
+El mètode assigna cada observació $x$ a la classe la qual $P_k(x)$ sigui major. Per aquesta tasca de maximització podem considerar la tasca equivalent de trobar el màxim prenent el logaritme i aleshores ens queda la funció discriminant que volíem:
+
+$$
 \delta_k(x) = x\frac{\mu_k}{\sigma^2} - \frac{\mu_k^2}{2\sigma^2} + \log(\pi_k)
-\]
+$$
+
 Com veiem, és una funció lineal en $x$.
 
 En el nostre cas, però, ens interesseran les dades de distribucions Guassianes multivariants. L'equació del discriminant canvia introduïnt-hi notació vectorial:
-\[
-\delta_k(\mathbf{x}) = \mathbf{x}^\top \Sigma^{-1} \vec{\mu_k} - \frac{1}{2}\; \vec{\mu_k}^\top\; \Sigma^{-1}\; \vec{\mu_k} + \log(\vec{\pi_k})
-\]
 
-```{r}
+$$
+\delta_k(\mathbf{x}) = \mathbf{x}^\top \Sigma^{-1} \vec{\mu_k} - \frac{1}{2}\; \vec{\mu_k}^\top\; \Sigma^{-1}\; \vec{\mu_k} + \log(\vec{\pi_k})
+$$
+
+```{r echo = FALSE}
 quality <- X[,12]
 X <- data.matrix(db)
 df <- data.frame(X[,-12])
@@ -269,6 +276,8 @@ sum(diag(lda.lite.confusiontable))/sum(lda.lite.confusiontable)
 
 
 # Anàlisi clúster
+
+
 
 # Conclusions
 

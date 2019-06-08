@@ -1,7 +1,8 @@
 # 1. Carreguem les dades
 # DIR <- "C:\\Users\\andreu.huguet\\Downloads\\wine-quality-ad-master\\"
-DIR <- '~/wine-quality-ad-master/'
-setwd(DIR)
+#DIR <- '~/wine-quality-ad-master/'
+#setwd(DIR)
+#dd <- read.csv2("./data/winequality-red.csv")
 dd <- read.csv2("./data/winequality-red.csv")
 head(dd)
 
