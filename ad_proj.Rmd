@@ -368,19 +368,107 @@ table(clusters.closest)
 (compar.closest <- table(clusters.closest, X$quality))
 ```
 
-En el cas del *Complete Linkage*, observem que si creem tres grups, les mides dels grups són bastant similars. Tot i que tots els grups contenen moltes observacions de qualitat 5 i 6, 
+En el cas del *Complete Linkage*, s'observa que si es creen tres grups, les mides dels grups són bastant similars. Tot i que tots els grups contenen moltes observacions de qualitat 5 i 6, s'observa que les observacions de qualitat més baixa s'han concentrat al clúster 1 i les de qualitat més alta al clúster 2. Així doncs, s'ha realitzat una separació més o menys depenent de la qualitat. A més, en el clúster "d'alta qualitat" és on menys observacions de qualitat 5 hi ha i en el clúster de "baixa qualitat" és on més n'hi ha.
 
 ```{r echo = FALSE}
 clusters.farthest <- cutree(farthest.neigh, 3)
 table(clusters.farthest)
 (compar.farthest <- table(clusters.farthest, X$quality))
 ```
+
+En el cas de l'*Average Linkage*, es té una situació semblant a la del *Single Linkage*: un grup molt gran i dos de petits amb 3 i 1 observacions. Per tant, no es detecten bé les diferents qualitats del vi.
+
 ```{r echo = FALSE}
 clusters.average <- cutree(average.neigh, 3)
 table(clusters.average)
-clusters.ward <- cutree(ward.neigh, 7)
-table(clusters.ward)
+(compar.average <- table(clusters.average, X$quality))
 ```
+
+Per últim, en el cas del *Ward Criterion*, s'observa que es poden crear 4 grups de tamanys similars. A més, al primer grup es concentren gariebé totes les observacions de pitjor qualitat (3 i 4), en el segon les de qualitat una mica millor (4 i 5), en el tercer és on abunden més les de qualitat mitjana-alta (6 i 7) i en l'últim és on hi ha la gran majora de qualitat alta (7 i 8). Per tant, aquest és el cas on més clarament s'agrupa segons la qualitat del vi.
+
+```{r echo = FALSE}
+clusters.ward <- cutree(ward.neigh, 4)
+table(clusters.ward)
+(compar.ward <- table(clusters.ward, X$quality))
+```
+Una aproximació de l'error en el cas del *Ward Criterion* és 44,84%.
+```{r echo = FALSE}
+ward.maxs <- apply(compar.ward, 1, which.max)
+ward.misclass <- 0
+for (k in 1:4) ward.misclass <- ward.misclass + sum(compar.ward[k,-ward.maxs[k]])
+(ward.err <- ward.misclass/sum(compar.ward))
+```
+
+En conclusió, si s'estableixen com a criteris de distància entre grups el *Ward Criterion*, un algoritme d'agrupació jeràrquic és capaç d'agrupar les observacions més o menys per qualitat. També s'observa que les qualitats altes o les qualitats baixes són les que millor es detecten, cosa que fa pensar que ha d'haver-hi detalls prou significants en les dades fisicoquímiques per diferenciar un vi dolent d'un vi molt bo.
+
+### Anàlisi Clúster No Jeràrquic
+
+En segon lloc, s'aplicarà un algoritme no jeràrquic per agrupar les observacions. En concret, s'aplicarà l'algoritme **K-Means** amb $K=4$, per poder-ho comparar amb l'aglomeració jeràrquica amb el criteri de Ward utilitzada anteriorment.
+
+```{r echo = FALSE}
+set.seed(123)
+clusters.kmeans <- kmeans(Xs, 4, nstart = 50)
+clusters.kmeans$size
+clusters.kmeans$centers
+clusters.kmeans$betweenss / clusters.kmeans$totss
+
+(compar.kmeans <- table(X$quality, clusters.kmeans$cluster))
+```
+
+S'observa que les dades es divideixen en 4 grups de tamanys similars. Pel que fa a la distribució d'observacions dintre de cada un dels grups tenim:
+
+- Grup 1: Qualitat **baixa** (3-4): La majoria d'observacions de baixa qualitat es concentren el el primer grup. També veiem que s'hi concentren moltes observacions de qualitat 5, cosa que fa pensar que el pas de qualitat 4 a qualitat 5 és mes subjectiu que objectiu. Pel que fa a les variables que més es tenen en compte per calcular el centre d'aquest grup són la $\texttt{volatile.acidity}$, que es té en compte postivament (és a dir, com més, pitjor sembla ser el vi) i el $\texttt{citric.acid}$, que es té en compte positivament (és a dir, com menys, pitjor és el vi). 
+
+- Grup 2: Qualitat **baixa-mitja** (4-5): La majoria d'observacions de qualitat 4 ja hem dit que estan al primer grup, però en el segon grup es concentren la majoria de les observacions restants de qualitats 4 i 5. S'observa que el que més es té en compte en aquest segon grup és les dues variables que es refereixen al Diòxid de Sofre. Les variables que abans marcaven una baixa qualitat del vi, no es tenen tant en compte en aquest grup.
+
+- Grup 3: Qualitat **mitja-alta** (6-7): Una gran part de les observacions de qualitat 6-7 es concentra en aquest grup. Pel que fa a les variables que es destaquen, s'observa que es valora negativament la $\texttt{volatile.acidity}$, fet lògic ja que en els vins de baixa qualitat es valorava positivament, i es valora molt positivament el $\texttt{citric.acid}$, contrari també als vins de baixa qualitat. Un altre variable que sembla ser important en aquest grup és el $\texttt{fixed.acidity}$, que es valora positivament.
+
+- Grup 4: Qualitat **alta** (7-8): Per últim, la majoria d'observacions de qualitat alta es concentren en aquest grup, on es valoren sobretot l'alcohol (variable $\texttt{alcohol}$), positivament, i la densitat (variable $\texttt{density}$) negativament. Ara bé, crida l'atenció que en aquest grup es valori negativament la densitat i en el grup anterior, de qualitat mitjana-alta, aquesta mateixa variable es valori positivament. El mateix passa amb la variable $\texttt{fixed.acidity}$. Ara bé, la variable $\texttt{volatile.acidity}$, igual que abans, es valora negativament. 
+
+Totes aquestes inconsistències en la valoració de cada una de les variables a cada un dels grups es pot assignar a la subjectivitat de la valoració.
+
+S'observa que, en aquest cas, la variabilitat entre els clusters comparada amb la variabilitat total de les dades és molt més reduïda. De fet, una aproximació de l'error és $ BetweenSS / TSS $, és a dir, la suma de quadrats entre els clústers entre la suma de quadrats total. En aquest cas, és 36,9%, inferior a l'aconseguida en el *Ward's Criterion*. Per tant, amb aquestes dades, *K-Means* funciona millor.
+
+```{r}
+kmeans.maxs <- apply(compar.kmeans, 1, which.max)
+kmeans.misclass <- 0
+for (k in 1:4) kmeans.misclass <- kmeans.misclass + sum(compar.kmeans[k,-kmeans.maxs[k]])
+(kmeans.err <- kmeans.misclass/sum(compar.kmeans))
+```
+
+### Anàlisi Clúster *Model-Based*
+
+Per últim, anem a agrupar les observacions seguint un model amb 4 mixtures, per poder-ho comparar amb la resta. El primer que s'observa és que els tamanys dels grups són bastant similars. A continuació s'analitzen cada un dels grups:
+
+- Grup 1: Qualitat **baixa-mitja** (4-5): La majoria d'observacions de qualitat 4 o 5 es concentren en aquest primer grup. Una de les variables que es té més en compte és $\texttt{citric.acid}$, negativament. Això ja d'havia observat en l'anàlisi anterior, en el grup dels vins de qualitat baixa. Igual que abans, també es valora positivament el $\texttt{volatile.acidity}$. El $\texttt{fixed acidity}$ es valora negativament (abans s'havia vist que en els vins bons es valorava positivament). 
+
+- Grup 2: Qualitat **alta** (7-8): La majoria de vins d'aquest grup són d'alta qualitat (7-8). Tal i com haviem vist abans, es valoren positivament el $\texttt{fixed.acidity}$ i el $\texttt{citric.acid}$, cosa que encaixa amb el que s'ha vist al grup anterior, de vins de qualitat més baixa. Observem que també, a diferència del grup anterior, el $\texttt{volatile.acidity}$ es valora negativament. En l'anàlisi del *K-Means* s'havia vist que la variable $\texttt{density}$ es valorava positivament en els bons vins i, en aquest cas, veiem que es compleix.
+
+- Grup 3: Qualitat **mitja-alta** (5-6-7): Els vins de qualitat mitja es concentren en aquest grup, on hi ha poc vins de qualitat extremes (baixes o altes). Igual que abans, observem que tenen un pes important positivament les variables relacionades amb el Diòxid de Sofre. Donat que la qualitat és mitjana, les variables que estem detectant que marquen la qualitat del vi, no es tenen tant en compte en aquest grup.
+
+- Grup 4: Qualitat **baixa** (3-4): Els pitjors vins es concentren en aquest grup, tot i que és el grup de tamany menor. Tornem a observar que es valora positivament la variable $\texttt{volatile.acidity}$, igual que en l'altre grup de vins de baixa qualitat. Un detall que cria l'atenció és la valoriació positiva de l'alcohol en aquest grup. Aquest fet s'explica perquè s'observa que també s'han incluït vins de qualitat molt bona en aquest grup, cosa que ha fet que pugi la mitjana.
+
+
+Tal i com s'ha comentat abans, el fet que apareguin vins de qualiat màxima i mínima en un mateix grup és degut a la subjectivitat de la valoració.
+
+
+```{r echo = FALSE}
+library(mclust)
+cluster.mix <- Mclust(Xs, 4)
+```
+
+```{r echo = FALSE}
+sum <- summary(cluster.mix, parameters = T)
+sum$mean
+plot(cluster.mix, what = "classification")
+(compar.mix <- table(cluster.mix$classification, X$quality))
+mix.maxs <- apply(compar.mix, 1, which.max)
+
+mix.misclass <- 0
+for (k in 1:4) mix.misclass <- mix.misclass + sum(compar.mix[k,-mix.maxs[k]])
+(mix.err <- mix.misclass/sum(compar.mix))
+```
+
 
 
 # Conclusions
