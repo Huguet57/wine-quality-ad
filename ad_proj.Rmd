@@ -46,7 +46,7 @@ Abans de res, s'observen les característiques de cada una de les variables i el
 
 ```{r echo = FALSE}
 Xid <- read.csv2("./data/winequality-red.csv")
-X <- Xid[,-1]
+X <- data.frame(Xid[,-1])
 summary(X[,-12])
 ```
 
@@ -316,25 +316,70 @@ A continuació, es procedeix a realitzar-se l'anàlisi clúster de les dades amb
 
 ### Anàlisi Cluster Jeràrquic
 
-```{r}
+En primer lloc, es realitza l'aglomeració jeràrquica de les dades amb 4 tipus diferents de distàncies entre grups (indicades com a títol de cada *plot*). Donat que la variable resposta d'aquest anàlisi és la qualitat del vi, s'haurien de veure agrupacions d'observacions amb qualitats similars, ja que s'entén que si dues observacions tenen la mateixa qualitat, són observacions properes. Així doncs, donat que la qualitat s'ha valorat de l'1 al 10, s'haurien de detectar un nombre menor que 10 de grups clars
+
+```{r echo = FALSE}
+library(colorspace)
+library(viridis)
 library(dendextend)
-library(zoom)
-#par(mfrow=c(2,2))
-names <- X[,ncol(X)]
-closest.neigh <- as.dendrogram(hclust(D, method = "single"))
-labels(closest.neigh) <- apply(Xid[,c(1,ncol(X))], 1, paste, collapse = "_")[order.dendrogram(closest.neigh)]
-closest.neigh <- set(closest.neigh, "labels_cex", 0.6)
-plot(closest.neigh, main="Single linkage", horiz = T)
-zm()
+n_quality <- length(unique(X$quality))
+#cols <- c("red","green","yellow","blue", "black", "orange")
+cols <- magma(n_quality)
+col_quality <- cols[X$quality]
 ```
 
+```{r echo = FALSE}
+closest.neigh <- as.dendrogram(hclust(D, method = "single"))
+col_quality <- col_quality[order.dendrogram(closest.neigh)]
+closest.neigh <- set(closest.neigh, "labels_colors", col_quality)
+plot(closest.neigh, main="Single linkage", cex = 0.3)
+
+farthest.neigh <- as.dendrogram(hclust(D, method = "complete"))
+col_quality <- col_quality[order.dendrogram(farthest.neigh)]
+farthest.neigh <- set(farthest.neigh, "labels_colors", col_quality)
+plot(farthest.neigh, main="Complete linkage", cex = 0.3)
+
+average.neigh <- as.dendrogram(hclust(D, method = "average"))
+col_quality <- col_quality[order.dendrogram(average.neigh)]
+average.neigh <- set(average.neigh, "labels_colors", col_quality)
+plot(average.neigh, main="Average linkage", cex = 0.3)
+
+ward.neigh <- as.dendrogram(hclust(D, method = "ward.D2"))
+col_quality <- col_quality[order.dendrogram(ward.neigh)]
+ward.neigh <- set(ward.neigh, "labels_colors", col_quality)
+plot(ward.neigh, main="Ward's criterion", cex = 0.3)
 ```
-farthest.neigh <- hclust(D, method = "complete")
-plot(farthest.neigh, main="Complete linkage",  col = X$quality)
-average.neigh <- hclust(D, method = "average")
-plot(average.neigh, main="Average linkage", col = X$quality)
-ward.neigh <- hclust(D, method = "ward.D2")
-plot(ward.neigh, main="Ward's linkage", col = X$quality)
+
+En el cas del *Single linkage*,  sembla ser que hi ha un grup molt gran i petits grupets. Això podria significar que la variabilitat de la qualitat de les observacions és petita, és a dir, que tenim moltes puntuacions iguals. Si es volguéssin agrupar les dades en un nombre més reduït de grups seguint aquesta agrlomeració, quedaria un grup amb un porcentatge molt elevat de les observacions i grups amb un percentatge molt petit. Així doncs, en aquest cas, no podem dir que resultin detectables les diferents qualitats de vi en aquesta agrupació. Per poder diferenciar un nombre raonable de grups, s'hauria de tallar a una distància de més de 3.
+
+En el cas del *Complete linkage*, sembla ser que hi ha unes agrupacions de tamanys més iguals. De fet, es poden veure clarament tres grups, que es podria suposar que són agrupacions de vi de alta qualitat, vi de baixa qualitat i vi de qualitat mitjana. En aquest cas doncs, a diferència de l'altre, sembla que sí que són detectables les diferents qualitats del vi. Per poder diferenciar aquests 3 grups clars, hauríem de tallar a una distància de més de 10.
+
+En el cas del *Average linkage*, es té un comportament semblant al de *Single linkage*: s'acaba formant un grup molt gran i grups més reduïts. Així que tampoc serveix per detectar les diferents qualitats del vi. Per poder diferenciar un nombre raonable de grups, s'hauria de tallar a una distància de més de 6.
+
+Per últim, en el cas del *Ward's criterion* és el cas on més clar es veu que es formen grups mes o menys del mateix tamany i iguals. En concret, es veu que es formen 4 grups clars i, per tant, són detectables les diferents qualitats del vi. Per poder diferenciar un nombre raonable de grups, s'hauria de tallar a una distància de més de 40.
+
+Ara bé, donat que s'han marcat de colors diferents les observacions, tenint en compte la seva puntuació, s'observa que a cada grup hi ha barreja de puntuacions. Això no és preocupant, ja que sabem que la puntuació ha estat posada de manera relativament subjectiva i pot no estar perfectament correlacionada amb el valor de les dades, que és en el que es basa aquest algoritme per fer els grups. Per poder diferenciar aquests 4 grups clars, s'hauria de tallar a una distància de més de 3. En definitiva, s'observa que dues observacions de qualitats prou diferents poden caure dins el mateix clúster. Un altre detall a remarcar, és que hi ha moltes observacions de la mateixa qualitat.
+
+A continuació, s'analitza en més profunditat com han agrupat aquests algoritmes, tallant l'arbre en cada cas per formar un nombre en concret de clústers. En el primer cas, el *Single Linkage*, s'ha tallat l'arbre per obtenir 3 clústers i el resultat és bastant dolent, ja que com s'havia comentat abans, es crea un clúster molt grans i dos de molt petits (de 2 i 1 observació). A més, el clústers petits contenen observacions amb qualitat 5, que és la més abundant al clúster gran.
+
+```{r echo = FALSE}
+clusters.closest <- cutree(closest.neigh, 3)
+table(clusters.closest)
+(compar.closest <- table(clusters.closest, X$quality))
+```
+
+En el cas del *Complete Linkage*, observem que si creem tres grups, les mides dels grups són bastant similars. Tot i que tots els grups contenen moltes observacions de qualitat 5 i 6, 
+
+```{r echo = FALSE}
+clusters.farthest <- cutree(farthest.neigh, 3)
+table(clusters.farthest)
+(compar.farthest <- table(clusters.farthest, X$quality))
+```
+```{r echo = FALSE}
+clusters.average <- cutree(average.neigh, 3)
+table(clusters.average)
+clusters.ward <- cutree(ward.neigh, 7)
+table(clusters.ward)
 ```
 
 
