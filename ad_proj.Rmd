@@ -158,11 +158,38 @@ S'observa, com havíem intuït amb el *biplot*, que el primer component represen
 
 # Inferència Multivariant
 
+## Breu Síntesi
+
+En segon lloc, s'aplicaran alguns mètodes d'**Inferència Multivariant** en les dades. L'objectiu d'aquest estudi serà descobrir si hi ha diferències estadísticament significatives entre diversos grups de dades, agrupats per la qualitat dels vins. Per detectar aquestes possibles diferències es realitzarà el test de $T^2$ de **Hotelling** (on assumirem igualtat de variàncies entre els grups) i un test de **t-student** (on no assumirem igualtat de variàncies entre els grups). 
+
+En ambdós casos, les hipotesis dels test són les següents: siguin $\mu_1$ i $\mu_2$ els vectors de mitjanes de les variables de dos grups del conjunt de dades,
+
+$$ H_0 : \mu_1 = \mu_2 $$
+$$ H_1 : \mu_1 \neq \mu_2 $$
+
+Ara bé, l'estadístic de prova dels tests varia en funció de si s'assumeixen igualtat de variàncies o no en els grups. En cas de que sí, es té que 
+
+$$ T^2 \text{ ha de seguir una } \frac{(n_1 + n_2 -2)p}{n_1 + n_2 -p -1} \digamma_{p,n_1+n_2-p-1} $$
+
+on $T^2 = [\bar{x}_1 - \bar{x}_2 - (\mu_1 - \mu_2)]' ((1/n_1 + 1/n_2)S_p)^{-1}[\bar{x}_1 - \bar{x}_2 - (\mu_1 - \mu_2)]$. En canvi, si no s'assumeix igualtat de variàncies,es té que
+
+$$ T^2 \text{ ha de seguir una } \chi^2$$
+on $T^2 = [\bar{x}_1 - \bar{x}_2 - (\mu_1 - \mu_2)]' \left(\frac{1}{n_1} S_1 + \frac{1}{n_2}S_2 \right)^{-1}[\bar{x}_1 - \bar{x}_2 - (\mu_1 - \mu_2)]$.
+
+En ambdós casos, s'assumeix que les variables dels grups segueixen una distribució normal multivariant. Llavors, el primer que s'haurà de fer abans d'aplicar aquests tests a les nostres dades, serà mirar si podem assumir normalitat mulivariant. Pel que fa a la divisió dels grups, es realitzaran dues divisions diferents: una de dos grups (qualitat inferior o igual a 5 i qualitat superior a 5) i una de tres grups (qualitat 3-4, qualitat 5-6, qualitat 7-8).
+
+## Inferència multivariant en les dades.
+
+### Distribució normal multivariant.
+
+
+
+
 # Anàlisi Discriminant (LDA/QDA)
 
 ## Breu síntesi
 
-En segon lloc, es farà un **Anàlisi Discriminant (LDA/QDA)**. Els objectius principals d'aquest estudi són  L'anàlisi de discriminant lineal (LDA en anglès) consisteix en trobar una funció discriminant tal que decideixi a quina classe $C_k$ pertany una observació $x$.
+En tercer lloc, es farà un **Anàlisi Discriminant (LDA/QDA)**. Els objectius principals d'aquest estudi són  L'anàlisi de discriminant lineal (LDA en anglès) consisteix en trobar una funció discriminant tal que decideixi a quina classe $C_k$ pertany una observació $x$.
 
 En LDA, assumim que les dades de les diferents $k$ classes provenen d'una distribució gaussiana i la seva funció de densitat es pot escriure com:
 $$
