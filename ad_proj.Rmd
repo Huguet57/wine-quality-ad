@@ -3,11 +3,11 @@ title: 'PROJECTE ANÀLISI DE DADES: Wine Quality'
 author: "David Anglada Rotger i Andreu Huguet Segarra"
 date: "17/5/2019"
 output:
-  html_document:
-    df_print: paged
-    toc: yes
   pdf_document:
     number_sections: yes
+    toc: yes
+  html_document:
+    df_print: paged
     toc: yes
 fig_width: 5
 fig_height: 3
@@ -178,12 +178,109 @@ on $T^2 = [\bar{x}_1 - \bar{x}_2 - (\mu_1 - \mu_2)]' \left(\frac{1}{n_1} S_1 + \
 
 En ambdós casos, s'assumeix que les variables dels grups segueixen una distribució normal multivariant. Llavors, el primer que s'haurà de fer abans d'aplicar aquests tests a les nostres dades, serà mirar si podem assumir normalitat mulivariant. Pel que fa a la divisió dels grups, es realitzaran dues divisions diferents: una de dos grups (qualitat inferior o igual a 5 i qualitat superior a 5) i una de tres grups (qualitat 3-4, qualitat 5-6, qualitat 7-8).
 
-## Inferència multivariant en les dades.
+## Inferència multivariant en les nostres dades.
 
 ### Distribució normal multivariant.
 
+Com s'ha dit anteriorment, abans de poder estudiar si hi ha diferències estadísticament significatives entre grups de dades, hem d'estar segurs que podem assumir normalitat en les variables. Per això es comprovarà que la relació entre les distàncies de les variables i els quartils corresponents a una $\chi^2_p$ amb $p$ graus de llibertat (número de variables, 11 en aquest cas) sigui lineal.
 
+```{r echo = FALSE}
+dbs <- scale(db, scale = F)
+dbcovs <- cov(db)
 
+md <- diag(dbs %*% solve(dbcovs, diag(11)) %*% t(dbs))
+md <- sort(md)
+
+n <- nrow(db)
+rang <- (c(1:n)-0.5)/n
+q <- qchisq(rang, 11)
+plot(q, md)
+abline(0,1, col = "red")
+```
+
+S'observa que la relació no és perfectament lineal però ho és suficient per assumir normalitat multivariant en les dades i, per tant, poder aplicar els tests de Hotelling i de *t*-student.
+
+Abans de res, s'han dividit les dades en dos grups (qualitat major o menor que 5) i en tres grups (rangs de qualitat de 3-4, 5-6 i 7-8).
+
+```{r echo = FALSE}
+db.menor5 <- db[which(X$quality <= 5),]
+db.major5 <- db[-which(X$quality <= 5),]
+
+db.quality34 <- db[which(X$quality < 5),]
+db.quality56 <- db[which(X$quality > 4 & X$quality < 7),]
+db.quality78 <- db[which(X$quality > 6),]
+nrow(db.quality34)
+nrow(db.quality56)
+nrow(db.quality78)
+```
+
+### Test Hotellin i *t*-student
+
+En primer lloc, es realitza en test de Hotelling assumint igualtat de variàncies entre els dos grups de dades: un en què els vins tenen qualitat inferior o igual a 5 i un altre on tenen qualitat major que 5.
+
+```{r echo = FALSE}
+library(ICSNP)
+HotellingsT2(db.menor5, db.major5)
+```
+
+Donat que s'obté un *p-value* < 0.05, s'ha de rebutjar la hipòtesi nula i, per tant, hi ha diferències estadísticament significatives entre les mitjanes dels vins de qualitat 5 o inferior amb els dels vins de qualitat 6 o major. Aquest resultat era d'esperar, ja que en cas contrari, voldria dir que la valoració dels jutges és 100% subjectiva, cosa que sabem que no és del tot certa. Observant les mitjanes, es comprova el resultat. S'observa que sobretot es difereix en les variables $\texttt{volatile.acidity}$, $\texttt{alcohol}$ i $\texttt{total.sulfur.dioxide}$.
+
+```{r echo = FALSE}
+colMeans(db.menor5)
+colMeans(db.major5)
+```
+
+Es calcula a continuació la $T^2$ sense assumir igualtat de variàncies. S'observa que el valor obtingut és força diferent a l'anterior i, per tant, es realitza un test $t$-student sense considerar les variàncies iguals.
+
+```{r echo = FALSE}
+(T2 <- (colMeans(db.menor5) - colMeans(db.major5))%*%solve(cov(db.menor5)/nrow(db.menor5) + cov(db.major5)/nrow(db.major5), diag(11))%*%(colMeans(db.menor5) - colMeans(db.major5)))
+```
+
+```{r echo=FALSE}
+for (i in 1:11){
+  print(colnames(db)[i])
+  test <- t.test(db.menor5[,i], db.major5[,i], var.equal = F)
+  print(test$p.value)
+}
+```
+
+Analitzant els *p-values*, s'observa que només hi ha diferències significatives entre les variables $\texttt{fixed.acidity}$, $\texttt{volatile.acidity}$, $\texttt{citric.acid}$, $\texttt{chlorides}$, $\texttt{total.sulfur.dioxide}$, $\texttt{density}$, $\texttt{sulphates}$ i $\texttt{alcohol}$. En la resta de variables, no hi ha diferències significatives. Així doncs, aquestes són les variables que principalment permetran dir si un vi és bo o és dolent.
+
+A continuació es realitzarà el mateix anàlisi però comparant els 3 grups especificats anteriorment 2 a 2. Donat que s'ha vist que no es pot assumir igualtat de variables, es realitzarà directament el test *t-student*. En primer lloc, comparem els vins dolents (qualitat 3-4) amb els vins bons (qualitat 7-8).
+
+```{r echo=FALSE}
+for (i in 1:11){
+  print(colnames(db)[i])
+  test <- t.test(db.quality34[,i], db.quality78[,i], var.equal = F)
+  print(test$p.value)
+}
+```
+
+Així doncs, entre aquests dos grups, s'observen diferències estadísticament significatives en les variables $\texttt{fixed.acidity}$, $\texttt{volatile.acidity}$, $\texttt{citric.acid}$, $\texttt{chlorides}$, $\texttt{density}$, $\texttt{sulphates}$, $\texttt{alcohol}$ i $\texttt{pH}$. Es veu que ara hi ha diferències en el pH i no n'hi ha en els nivells totals de Diòxid de Sofre, a diferència d'abans. Tot i així, sembla bastant objectiu que un vi sigui de baixa qualitat a que sigui d'alta qualitat
+
+Es comparen ara els vins dolents (3-4) amb els vins mitjans (5-6).
+
+```{r echo=FALSE}
+for (i in 1:11){
+  print(colnames(db)[i])
+  test <- t.test(db.quality34[,i], db.quality56[,i], var.equal = F)
+  print(test$p.value)
+}
+```
+
+En aquest cas, s'observen diferències en només 6 variables (abans n'hi havia en 8): $\texttt{volatile.acidity}$, $\texttt{citric.acid}$, $\texttt{free.sulfur.dioxide}$, $\texttt{total.sulfur.dioxide}$, $\texttt{pH}$ i $\texttt{sulphates}$. Així doncs, sembla que les diferències entre vins de mitjana qualitat i de baixa qualitat no estan tant clares (tot i que hi segueixen estant).
+
+Per últim, es comparen els vins mitjans (5-6) amb els vins bons (7-8).
+
+```{r echo=FALSE}
+for (i in 1:11){
+  print(colnames(db)[i])
+  test <- t.test(db.quality78[,i], db.quality56[,i], var.equal = F)
+  print(test$p.value)
+}
+```
+
+En aquest cas, veiem diferències estadísticament significatives en totes les variables tret del $\texttt{residual.sugar}$. És a dir, són els grups més diferents i, per tant, quan un vi es bo, es nota.
 
 # Anàlisi Discriminant (LDA/QDA)
 
@@ -214,7 +311,6 @@ $$
 
 ```{r echo = FALSE}
 quality <- X[,12]
-X <- data.matrix(db)
 df <- data.frame(X[,-12])
 
 D <- ncol(df)
@@ -242,7 +338,7 @@ hist(quality.section,
 
 ```{r}
 library(MASS)
-lda.out <- lda(quality.section ~ X)
+lda.out <- lda(quality.section ~ data.matrix(db))
 lda.out$means
 ```
 
@@ -282,7 +378,7 @@ quality.lite.section[quality.lite.low] <- 0
 quality.lite.section[quality.lite.med] <- 1
 quality.lite.section[quality.lite.high] <- 2
 
-X.lite <- X[quality.lite.index, ]
+db.lite <- db[quality.lite.index, ]
 hist(quality.lite.section,
      breaks = seq(-0.5, 2.5, by = 1))
 ```
@@ -290,7 +386,7 @@ hist(quality.lite.section,
 Ara, amb aquesta nova distribució més equitativa de les dades, tornem a fer un LDA.
 
 ```{r}
-df.lite <- data.frame(X.lite)
+df.lite <- data.frame(db.lite)
 lda.lite.out <- lda(quality.lite.section ~ ., df.lite)
 lda.lite.out$means
 ```
