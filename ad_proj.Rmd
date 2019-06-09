@@ -209,9 +209,6 @@ db.major5 <- db[-which(X$quality <= 5),]
 db.quality34 <- db[which(X$quality < 5),]
 db.quality56 <- db[which(X$quality > 4 & X$quality < 7),]
 db.quality78 <- db[which(X$quality > 6),]
-nrow(db.quality34)
-nrow(db.quality56)
-nrow(db.quality78)
 ```
 
 ### Test Hotellin i *t*-student
