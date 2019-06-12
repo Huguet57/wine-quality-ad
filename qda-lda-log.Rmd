@@ -1,0 +1,208 @@
+---
+title: "LDA - QDA"
+author: "Andreu Huguet"
+date: "June 12, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## LDA - QDA - LogReg
+
+```{r}
+# 1. Carreguem les dades
+DIR <- "C:\\Users\\andreu.huguet\\Downloads\\wine-quality-ad-master\\"
+setwd(DIR)
+dd <- read.csv2("./data/winequality-red.csv")
+head(dd)
+
+# 1.1. Creem la matriu X de variables
+X <- data.matrix(dd[,2:(ncol(dd) - 1)])
+quality <- dd$quality
+```
+# Transformació i estandarització de les dades
+# Transformació logarítmica
+Abans de fer l'anàlisi discriminant, necessitarem estandaritzar les dades per facilitar la discriminació entre distribucions. Considerarem la transformació logarítmica per la variable $\texttt{residual.sugar}$ perquè com podem veure a l'histograma de la variable podem veure la gran concentració dels valors en un mateix petit interval.
+
+```{r}
+hist(X[,5], main = "Histograma de residual.sugar")
+hist(log(X[,5]), main = "Histograma de log(residual.sugar)")
+```
+
+La transformació ens dona la variable $\log(\texttt{residual.sugar})$ amb una distribució menys concentrada i amb més versemblança a una distribució normal.
+
+```{r}
+# 3. Transformació i estandarització de les variables
+# 3.1. Transformacions pre-estandaritzat
+X[,5] <- log(X[,5])
+
+# 3.2. Estandarització de les variables
+Xs <- scale(X, center = T, scale = T)
+sum(is.na(Xs)) == 0
+```
+
+# Estandarització de les variables
+Després de la transformació logarítmica de $\texttt{residual.sugar}$, estandaritzem les dades. És a dir, les centrem i les dividim per la seva variància. Una última transformació que considerarem és la de la variable $\texttt{quality}$. Veiem que els vins de qualitat 5-6 superen amb majoria absoluta als altres vins.
+
+```{r}
+hist(quality)
+bin <- ifelse(quality > 5, "Bo", "Dolent")
+```
+
+Per evitar que l'anàlisi discriminant no es centri massa en els vins mediocres i passi dels altres, separarem la variable en dos categories: vins bons ($\geq 6$) i vins dolents ($\leq 5$). 
+
+# Anàlisi de Discriminant Lineal (LDA)
+# Coeficients del discriminant lineal
+Ara les dades ja estan preparades per realitzar l'anàlisi discriminant. Calculem primer els coeficients:
+
+```{r}
+# 4. Fem un LDA i donem els coeficients
+library(MASS)
+lda.out <- lda(bin ~ Xs)
+lda.out$scaling
+```
+
+Veiem que les variables que tenen més importantància en la discriminació són: $\texttt{alcohol}$, $\texttt{total.sulfur.dioxide}$, $\texttt{volatile.acidity}$ i $\texttt{sulphates}$. Ingredients explícitament químics que clarament podem veure com poden discriminar entre vins per la seva particularitat.
+
+En canvi, les menys importants són: $\texttt{residual.sugar}$, $\texttt{density}$ i el $\texttt{pH}$. Que com podem veure són mesures molt més genèriques, que depenen de molts components químics i per tant són bastant més insignificants a l'hora de discriminar.
+
+# Taula de confusió del LDA
+Podem comprovar com discrimina de bé l'anàlisi fent la taula de confusió de les dades:
+
+```{r}
+# 5. Taula de confusió
+lda.pred <- predict(lda.out)
+(lda.ct <- table(bin, lda.pred$class))
+(err.lda <- sum(diag(lda.ct))/sum(lda.ct))
+```
+
+# Vins classificats erròniament amb LDA
+
+Veiem que hi ha un $74,73%$ d'encert en la discriminació que en principi són bones notícies ja que veiem que hi ha quelcom que separa els vins bons i els vins dolents. Podem veure de quin caire són els vins que han estat classificats erròniament:
+
+```{r}
+missclass.lda <- which(bin != lda.pred$class)
+print("Qualitat de tots els vins")
+summary(as.factor(quality))
+print("Qualitat dels vins erròniament classificats amb LDA")
+summary(as.factor(quality[missclass.lda]))
+
+hist(quality)
+hist(quality[missclass.lda], xlim = c(3,8))
+```
+
+En les dades podem veure que els vins de $\geq 7$ i els de $\leq 4$ són classificats correctament en gran majoria; comptant com un resultat satisfactori de l'anàlisi. Els més difícilment de classificar són, com era d'esperar, els vins de qualitat 5 i 6.
+
+Proporcionalment, veiem una lleugera tendència a classificar erròniament vins de qualitat 4 i 6 (a preu, suposem de discriminar bé quasi perfecte els de qualitat 3, 7 i 8).
+
+# Anàlisi de Discriminant Quadràtic (QDA)
+Provem de fer un anàlisi de discriminant quadràtic a veure com es compara amb el lineal.
+
+```{r}
+# 6. QDA
+qda.out <- qda(bin ~ Xs)
+qda.pred <- predict(qda.out)
+(qda.ct <- table(bin, qda.pred$class))
+(err.qda <- sum(diag(qda.ct))/sum(qda.ct))
+```
+
+Veiem que l'anàlisi quadràtic dona un resultat similar al lineal. Veiem-ho més en detall:
+
+```{r}
+missclass.qda <- which(bin != qda.pred$class)
+print("Qualitat de tots els vins")
+summary(as.factor(quality))
+print("Qualitat dels vins erròniament classificats amb QDA")
+summary(as.factor(quality[missclass.qda]))
+
+hist(quality)
+hist(quality[missclass.qda], xlim = c(3,8))
+```
+
+# Comparació de QDA amb LDA
+En efecte, els vins erròniament classificats fora del 5 i 6 ronden els mateixos nombres que en l'anàlisi lineal. El canvi més notable ha sigut un canvi entre els classificats entre el 5 i el 6.
+
+```{r}
+quals <- sort(unique(quality))
+
+print("Wines missclassified with LDA and QDA simultanoeusly")
+for (k in quals) {
+  I.k <- intersect(which(quality[missclass.lda] == k),
+                   which(quality[missclass.qda] == k))
+  
+  print(paste("Quality =", k))
+  print(length(I.k))
+}
+```
+
+Ara bé, encara que el nombre de classificats erròniament és el mateix. Ens sorprèn que el LDA i el QDA han coincidit molt poc entre els vins erròniament classificats. És a dir, que els vins que LDA ha classificat bé; QDA ha classificat malament i viceversa (en la majoria de casos).
+
+# Regressió logística (LogReg)
+Ara provem de fer una regressió logística per comparar-la amb els dos anàlisis.
+
+```{r}
+# 7. Logistic regression
+qual.bin <- quality > 5
+mod <- glm(qual.bin ~ Xs,
+           family = "binomial")
+
+log.pred <- predict(mod, type = "response")
+(log.ct <- table(qual.bin, log.pred > 0.5))
+(err.log <- sum(diag(log.ct))/sum(log.ct))
+```
+
+Un percentatge lleugerament superior als altres mètodes però semblant.
+
+```{r}
+missclass.log <- which(qual.bin != (log.pred > 0.5))
+print("Qualitat de tots els vins")
+summary(as.factor(quality))
+print("Qualitat dels vins erròniament classificats amb LogReg")
+summary(as.factor(quality[missclass.log]))
+
+hist(quality)
+hist(quality[missclass.log], xlim = c(3,8))
+```
+
+# Comparació amb LDA, QDA i LogReg
+Resultats també similars als dels altres dos mètodes. 
+
+```{r}
+quals <- sort(unique(quality))
+
+print("Wines missclassified with LDA, QDA simultanoeusly with LogReg")
+print("Missclassified with LDA and LogReg / Missclassified with QDA and LogReg / Union of missclassified with LDA and LogReg and with QDA and LogReg")
+
+for (k in quals) {
+  Q.k <- intersect(which(quality[missclass.qda] == k),
+                   which(quality[missclass.log] == k))
+  L.k <- intersect(which(quality[missclass.lda] == k),
+                   which(quality[missclass.log] == k))
+  
+  U.k <- union(Q.k, L.k)
+  print(paste("Quality =", k))
+  print(paste(paste(length(L.k), length(Q.k)), length(U.k)))
+}
+```
+
+# Resultats dels tres mètodes
+Veiem que la regressió logística classifica erròniament alguns altres vins que els altres mètodes classificaven bé; sobretot en els vins de qualitat de 5 i 6. Recollim els resultats dels tres mètodes en una taula de comparació:
+
+```{r}
+# 8. Taula de comparació
+comp.table <- data.frame(ERR.lda = err.lda,
+                         ERR.qda = err.qda,
+                         ERR.log = err.log)
+comp.table
+
+print("Qualitat de tots els vins")
+summary(as.factor(quality))
+print("Qualitat dels vins erròniament classificats amb LDA")
+summary(as.factor(quality[missclass.lda]))
+print("Qualitat dels vins erròniament classificats amb QDA")
+summary(as.factor(quality[missclass.qda]))
+print("Qualitat dels vins erròniament classificats amb LogReg")
+summary(as.factor(quality[missclass.log]))
+```
