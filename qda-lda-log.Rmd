@@ -31,7 +31,7 @@ hist(X[,5], main = "Histograma de residual.sugar")
 hist(log(X[,5]), main = "Histograma de log(residual.sugar)")
 ```
 
-La transformació ens dona la variable $\log(\texttt{residual.sugar})$ amb una distribució menys concentrada i amb més versemblança a una distribució normal.
+La transformació ens dóna la variable $\log(\texttt{residual.sugar})$ amb una distribució menys concentrada i amb més versemblança a una distribució normal.
 
 ```{r}
 # 3. Transformació i estandarització de les variables
