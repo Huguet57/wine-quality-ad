@@ -3,11 +3,11 @@ title: 'PROJECTE ANÀLISI DE DADES: Wine Quality'
 author: "David Anglada Rotger i Andreu Huguet Segarra"
 date: "17/5/2019"
 output:
-  html_document:
-    df_print: paged
-    toc: yes
   pdf_document:
     number_sections: yes
+    toc: yes
+  html_document:
+    df_print: paged
     toc: yes
 fig_width: 5
 fig_height: 3
@@ -319,15 +319,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## LDA - QDA - LogReg
 
-```{r}
-# 1. Carreguem les dades
-DIR <- "C:\\Users\\andreu.huguet\\Downloads\\wine-quality-ad-master\\"
-setwd(DIR)
-dd <- read.csv2("./data/winequality-red.csv")
-head(dd)
-
-# 1.1. Creem la matriu X de variables
-Xd <- data.matrix(dd[,2:(ncol(dd) - 1)])
+```{r echo = FALSE}
 quality <- dd$quality
 ```
 # Transformació i estandarització de les dades
