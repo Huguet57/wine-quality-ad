@@ -283,132 +283,122 @@ En aquest cas, veiem diferències estadísticament significatives en totes les v
 
 ## Breu síntesi
 
-En tercer lloc, es farà un **Anàlisi Discriminant (LDA/QDA)**. Els objectius principals d'aquest estudi són  L'anàlisi de discriminant lineal (LDA en anglès) consisteix en trobar una funció discriminant tal que decideixi a quina classe $C_k$ pertany una observació $x$.
+En tercer lloc, es farà un **Anàlisi Discriminant (LDA/QDA)**, així com també una **Regressió Logística**. Els objectius principals d'aquests estudi són la separació en grups (concretament en dos) de les dades, per així poder reduri la dimensió d'anàlisi (de variables a discriminadors) i, donada una nova observació, poder-la classificar. 
 
-En LDA, assumim que les dades de les diferents $k$ classes provenen d'una distribució gaussiana i la seva funció de densitat es pot escriure com:
-$$
-f_k(x) = \frac{1}{\sqrt{2\pi\sigma}} \exp(-\frac{1}{2\sigma^2}(x-\mu_k)^2)
-$$
+Aixi doncs, l'anàlisi discriminant, consisteix en trobar una **funció discriminant** tal que permeti decidir a quina classe ($\pi_1$ o $\pi_2$) pertany una observació $x$. En el cas del **LDA**, Anàlisi Discriminant *Lineal*, es buscarà aquesta funció tal que sigui lineal. D'inici, es suposa que la distribució de les dades és una Normal Multivariant que, a més, en el cas de LDA es suposa igualtat de variàncies entre els grups ($\Sigma_1 = \Sigma_2 = \Sigma$). Per tant, s'assumeix:
 
-on, per cada classe $k$, $\mu_k$ és la mitjana de la classe $k$ i $\sigma$ és la variància comuna de totes les dades (un altre requisit que assumim quan fem LDA).
+$$ f_k(x) = \frac{1}{(2\pi)^{p/2}|\Sigma|^{1/2}} \exp\left(-\frac{1}{2}(x-\mu_k)'\Sigma^{-1}(x-\mu_k)\right) \quad k=1,2 $$
+L'objectiu de la funció discriminant ha de ser minimitzar el __*ECM*__ (Expected Cost of Misclassification), definit com:
 
-El mètode assigna cada observació $x$ a la classe la qual $P_k(x)$ sigui major. Per aquesta tasca de maximització podem considerar la tasca equivalent de trobar el màxim prenent el logaritme i aleshores ens queda la funció discriminant que volíem:
+$$ECM = c(1|2)P(1|2)p_2 + c(2|1)P(2|1)p_1$$
+on $c(i|j)$ són el número de observacions que pertanyen al grup $j$ però s'han classificat com a grup $i$, $P(i|j)$ ídem però amb probabilitat, i les $p_k$ són les probabilitats *a-priori* de pertànyer a cada un dels grups. Així doncs, minimitzant queda que la funció discriminant de LDA és assignar l'observació $x$ al grup 1 si:
 
-$$
-\delta_k(x) = x\frac{\mu_k}{\sigma^2} - \frac{\mu_k^2}{2\sigma^2} + \log(\pi_k)
-$$
+$$ (\bar{x}_1 - \bar{x}_2)'S_p^{-1}x - \frac{1}{2}(\bar{x}_1 - \bar{x}_2)'S_p^{-1}(\bar{x}_1 - \bar{x}_2) \geq \ln\left(\left(\frac{c(1|2)}{c(2|1)}\right)\left( \frac{p_2}{p_1}\right)\right) $$
 
-Com veiem, és una funció lineal en $x$.
+$$ S_p = \frac{n_1 - 1}{n_1 + n_2 - 2}S_1 + \frac{n_2 -1 }{n_1 + n_2 - 2}S_2 $$ 
 
-En el nostre cas, però, ens interesseran les dades de distribucions Guassianes multivariants. L'equació del discriminant canvia introduïnt-hi notació vectorial:
+En el cas de **QDA**, Anàlisi Discriminant *Quadràtic*, la funció discriminant resultant que s'obté no és lineal sinó quadràtica, degut a què no es suposa la hipòtesi d'igualtat de variàncies ($\Sigma_1 \neq \Sigma_2$) i, per tant, s'assigna l'observació $x$ al grup 1 si:
 
-$$
-\delta_k(\mathbf{x}) = \mathbf{x}^\top \Sigma^{-1} \vec{\mu_k} - \frac{1}{2}\; \vec{\mu_k}^\top\; \Sigma^{-1}\; \vec{\mu_k} + \log(\vec{\pi_k})
-$$
+$$ -\frac{1}{2}x'(S_{1}^{-1} - S_2^{-1})x + (\bar{x}_1'S_{1}^{-1} - \bar{x}_2'S_{2}^{-1})x - k \geq \ln\left(\left(\frac{c(1|2)}{c(2|1)}\right)\left( \frac{p_2}{p_1}\right)\right) $$
+$$ k = \frac{1}{2}\ln \left(\frac{|S_1|}{|S_2|} \right) + \frac{1}{2}(\bar{x}_1'S_1^{-1}\bar{x}_1 - \bar{x}_2'S_2^{-1}\bar{x}_2) $$
 
----
-title: "LDA - QDA"
-author: "Andreu Huguet"
-date: "June 12, 2019"
-output: html_document
----
+Una vegada realitzades aquestes classificacions, pot ser interessant tenir una mesura del seu error. Per aquesta finalitat, es tenen diferents opcions:
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+- *Actual Error Rate* (*AER*), que depèn de les funcions de densitat $f_k(x)$ ($\hat{R}_k$ és la regió dels valors del grup k):
 
-## LDA - QDA - LogReg
+$$ AER = p_1 \int_{\hat{R}_2} f_1(x) dx +  p_2 \int_{\hat{R}_2} f_2(x) dx$$
+- *Apparent Eroor Rate* (*APER*), que no depèn de les funcions de densitat $f_k(x)$:
+
+$$ APER = \frac{n_{12} + n_{21}}{n_{1} + n_{2}} $$
+
+on $n_{ij}$ representa els valors de la classe $i$ classificats com a valors de la classe $j$.
+
+## Anàlisi discriminant de les nostres dades
 
 ```{r echo = FALSE}
-quality <- dd$quality
-```
-# Transformació i estandarització de les dades
-# Transformació logarítmica
-Abans de fer l'anàlisi discriminant, necessitarem estandaritzar les dades per facilitar la discriminació entre distribucions. Considerarem la transformació logarítmica per la variable $\texttt{residual.sugar}$ perquè com podem veure a l'histograma de la variable podem veure la gran concentració dels valors en un mateix petit interval.
-
-```{r}
-hist(Xd[,5], main = "Histograma de residual.sugar")
-hist(log(Xd[,5]), main = "Histograma de log(residual.sugar)")
+quality <- X$quality
 ```
 
-La transformació ens dona la variable $\log(\texttt{residual.sugar})$ amb una distribució menys concentrada i amb més versemblança a una distribució normal.
-
-```{r}
-# 3. Transformació i estandarització de les variables
-# 3.1. Transformacions pre-estandaritzat
-Xd[,5] <- log(Xd[,5])
-
-# 3.2. Estandarització de les variables
-Xs <- scale(Xd, center = T, scale = T)
-sum(is.na(Xs)) == 0
+```{r echo = FALSE}
+Xs <- scale(db, center = T, scale = T)
 ```
 
-# Estandarització de les variables
-Després de la transformació logarítmica de $\texttt{residual.sugar}$, estandaritzem les dades. És a dir, les centrem i les dividim per la seva variància. Una última transformació que considerarem és la de la variable $\texttt{quality}$. Veiem que els vins de qualitat 5-6 superen amb majoria absoluta als altres vins.
+Abans de realitzar qualsevol tipus d'anàlisi, s'estandaritzen les dades per apropar-les a una distribució normal (assumpció necessària per aquest estudi, com s'ha comentat anteriorment). En segon lloc, donat que la gran majoria de vins estan valorats al 5 o al 6 (tal i com es pot observar en l'histograma), es decideix que els dos grups sobre els quals s'intentaran agrupar les dades seràn el grup dels vins "dolents" (qualitat inferior o igual a 5) i el grup dels vins "bons".
 
 ```{r}
 hist(quality)
 bin <- ifelse(quality > 5, "Bo", "Dolent")
 ```
 
-Per evitar que l'anàlisi discriminant no es centri massa en els vins mediocres i passi dels altres, separarem la variable en dos categories: vins bons ($\geq 6$) i vins dolents ($\leq 5$). 
+### Anàlisi de Discriminant Lineal (LDA)
 
-# Anàlisi de Discriminant Lineal (LDA)
-# Coeficients del discriminant lineal
-Ara les dades ja estan preparades per realitzar l'anàlisi discriminant. Calculem primer els coeficients:
+Ara les dades ja estan preparades per realitzar l'anàlisi discriminant. En primer lloc es suposaran que els grups tenen variàncies iguals i es realitzarà l'anàlisi discriminant lineal. El primer que es fa és calcular-ne el coeficients per veure a quines variables es dóna més importància a l'hora de classificar:
 
-```{r}
+```{r echo = FALSE}
 # 4. Fem un LDA i donem els coeficients
 library(MASS)
 lda.out <- lda(bin ~ Xs)
 lda.out$scaling
 ```
 
-Veiem que les variables que tenen més importantància en la discriminació són: $\texttt{alcohol}$, $\texttt{total.sulfur.dioxide}$, $\texttt{volatile.acidity}$ i $\texttt{sulphates}$. Ingredients explícitament químics que clarament podem veure com poden discriminar entre vins per la seva particularitat.
+S'observa que les variables que tenen més importantància en la discriminació són: 
 
-En canvi, les menys importants són: $\texttt{residual.sugar}$, $\texttt{density}$ i el $\texttt{pH}$. Que com podem veure són mesures molt més genèriques, que depenen de molts components químics i per tant són bastant més insignificants a l'hora de discriminar.
+- $\texttt{alcohol}$, que té un coeficient negatiu.
+- $\texttt{total.sulfur.dioxide}$, que té un coeficient positiu.
+- $\texttt{volatile.acidity}$, que té un coeficient positiu.
+- $\texttt{sulphates}$, que té un coeficient negatiu
 
-# Taula de confusió del LDA
-Podem comprovar com discrimina de bé l'anàlisi fent la taula de confusió de les dades:
+Tots són ingredients explícitament químics que clarament es pot veure com poden discriminar entre vins per la seva particularitat.
 
-```{r}
+En canvi, les menys importants són, $\texttt{residual.sugar}$, $\texttt{density}$ i el $\texttt{pH}$, que com es pot veure són mesures molt més genèriques, que depenen de molts components químics i per tant són bastant més insignificants a l'hora de discriminar.
+
+Una primera mesura de la precisió de la separació en els dos grups pot ser la matriu de confusió del LDA. Els seus valors són els següents:
+
+```{r echo = FALSE}
 # 5. Taula de confusió
 lda.pred <- predict(lda.out)
 (lda.ct <- table(bin, lda.pred$class))
-(err.lda <- sum(diag(lda.ct))/sum(lda.ct))
+err.lda <- 1- sum(diag(lda.ct))/sum(lda.ct)
+cat("\n")
+cat("APER de LDA:", err.lda)
+
 ```
 
-# Vins classificats erròniament amb LDA
+L'error de classificació obtingut és del 25% en la discriminació que en principi són bones notícies ja que queda demostrat que hi ha quelcom que separa els vins bons i els vins dolents. Es pot veure de quin caire són els vins que han estat classificats erròniament:
 
-Veiem que hi ha un $74,73%$ d'encert en la discriminació que en principi són bones notícies ja que veiem que hi ha quelcom que separa els vins bons i els vins dolents. Podem veure de quin caire són els vins que han estat classificats erròniament:
-
-```{r}
+```{r echo = FALSE}
 missclass.lda <- which(bin != lda.pred$class)
-print("Qualitat de tots els vins")
+cat("Qualitat de tots els vins\n")
+cat("\n")
 summary(as.factor(quality))
-print("Qualitat dels vins erròniament classificats amb LDA")
+cat("Qualitat dels vins erròniament classificats amb LDA\n")
+cat("\n")
 summary(as.factor(quality[missclass.lda]))
 
 hist(quality)
 hist(quality[missclass.lda], xlim = c(3,8))
 ```
 
-En les dades podem veure que els vins de $\geq 7$ i els de $\leq 4$ són classificats correctament en gran majoria; comptant com un resultat satisfactori de l'anàlisi. Els més difícilment de classificar són, com era d'esperar, els vins de qualitat 5 i 6.
+En les dades es pot veure que els vins de $\geq 7$ i els de $\leq 4$ són classificats correctament en gran majoria. Els més difícilment de classificar són, com era d'esperar, els vins de qualitat 5 i 6. Proporcionalment, veiem una lleugera tendència a classificar erròniament vins de qualitat 4 i 6 (a preu, suposem de discriminar bé quasi perfecte els de qualitat 3, 7 i 8).
 
-Proporcionalment, veiem una lleugera tendència a classificar erròniament vins de qualitat 4 i 6 (a preu, suposem de discriminar bé quasi perfecte els de qualitat 3, 7 i 8).
+### Anàlisi de Discriminant Quadràtic (QDA)
 
-# Anàlisi de Discriminant Quadràtic (QDA)
-Provem de fer un anàlisi de discriminant quadràtic a veure com es compara amb el lineal.
+A continuació, es realitza un anàlisi de discriminant quadràtic (es suposarà que els dos grups tenen matrius de covariància diferents) per poder comparar-lo amb el lineal.
 
-```{r}
+```{r echo = FALSE}
 # 6. QDA
 qda.out <- qda(bin ~ Xs)
-qda.pred <- predict(qda.out)
-(qda.ct <- table(bin, qda.pred$class))
-(err.qda <- sum(diag(qda.ct))/sum(qda.ct))
 ```
 
-Veiem que l'anàlisi quadràtic dona un resultat similar al lineal. Veiem-ho més en detall:
+```{r echo = FALSE}
+qda.pred <- predict(qda.out)
+(qda.ct <- table(bin, qda.pred$class))
+err.qda <- 1 -sum(diag(qda.ct))/sum(qda.ct)
+cat("\n")
+cat("APER de QDA:", err.qda)
+```
+
+Tal i com s'ha fet anteriorment, es calcula la matriu de confusió del model quadràtic i s'observa que el resultat és gairebé igual que amb LDA. Ídem que abans, s'aprofundeix més en els vins mal classificats i els resultats són els següents:
 
 ```{r}
 missclass.qda <- which(bin != qda.pred$class)
@@ -421,13 +411,12 @@ hist(quality)
 hist(quality[missclass.qda], xlim = c(3,8))
 ```
 
-# Comparació de QDA amb LDA
-En efecte, els vins erròniament classificats fora del 5 i 6 ronden els mateixos nombres que en l'anàlisi lineal. El canvi més notable ha sigut un canvi entre els classificats entre el 5 i el 6.
+En efecte, els vins erròniament classificats fora del 5 i 6 ronden els mateixos nombres que en l'anàlisi lineal. És a dir, s'obtenen uns resultats molt similars al LDA.
 
 ```{r}
 quals <- sort(unique(quality))
 
-print("Wines missclassified with LDA and QDA simultanoeusly")
+cat("Wines missclassified with LDA and QDA simultanoeusly\n")
 for (k in quals) {
   I.k <- intersect(which(quality[missclass.lda] == k),
                    which(quality[missclass.qda] == k))
@@ -437,10 +426,11 @@ for (k in quals) {
 }
 ```
 
-Ara bé, encara que el nombre de classificats erròniament és el mateix. Ens sorprèn que el LDA i el QDA han coincidit molt poc entre els vins erròniament classificats. És a dir, que els vins que LDA ha classificat bé; QDA ha classificat malament i viceversa (en la majoria de casos).
+Ara bé, encara que el nombre de classificats erròniament és el mateix, sorprèn que el LDA i el QDA han coincidit molt poc entre els vins erròniament classificats. És a dir, que els vins que LDA ha classificat bé, QDA ha classificat malament i viceversa (en la majoria de casos).
 
-# Regressió logística (LogReg)
-Ara provem de fer una regressió logística per comparar-la amb els dos anàlisis.
+### Regressió logística (LogReg)
+
+Com a tercera opció per classificar els dos grups de vins, es provarà de fer una **Regressió Logística** (*Logistic Regression*), un model lineal generalitzat que té com a *link function* la funció logaritme i com a distribució de les dades d'entrada, la família binomial.
 
 ```{r}
 # 7. Logistic regression
@@ -450,30 +440,31 @@ mod <- glm(qual.bin ~ Xs,
 
 log.pred <- predict(mod, type = "response")
 (log.ct <- table(qual.bin, log.pred > 0.5))
-(err.log <- sum(diag(log.ct))/sum(log.ct))
-```
+err.log <- 1- sum(diag(log.ct))/sum(log.ct)
 
-Un percentatge lleugerament superior als altres mètodes però semblant.
+cat("\n")
+cat("APER de LogReg:", err.log)
+```
+S'observa que s'obté un percentatge d'error lleugerament superior als altres mètodes però semblant. A continuació, s'analitzen amb més profunditat els valors mal classificats.
 
 ```{r}
 missclass.log <- which(qual.bin != (log.pred > 0.5))
-print("Qualitat de tots els vins")
+cat("Qualitat de tots els vins\n")
 summary(as.factor(quality))
-print("Qualitat dels vins erròniament classificats amb LogReg")
+cat("Qualitat dels vins erròniament classificats amb LogReg\n")
 summary(as.factor(quality[missclass.log]))
 
 hist(quality)
 hist(quality[missclass.log], xlim = c(3,8))
 ```
 
-# Comparació amb LDA, QDA i LogReg
-Resultats també similars als dels altres dos mètodes. 
+S'obtenen resultats també similars als dels altres dos mètodes. A continuació es calculen els vins que es classifiquen erròniament en els tres mètodes:
 
 ```{r}
 quals <- sort(unique(quality))
 
-print("Wines missclassified with LDA, QDA simultanoeusly with LogReg")
-print("Missclassified with LDA and LogReg / Missclassified with QDA and LogReg / Union of missclassified with LDA and LogReg and with QDA and LogReg")
+cat("Wines missclassified with LDA, QDA simultanoeusly with LogReg\n")
+cat("Missclassified with LDA and LogReg / Missclassified with QDA and LogReg / Union of missclassified with LDA and LogReg and with QDA and LogReg\n")
 
 for (k in quals) {
   Q.k <- intersect(which(quality[missclass.qda] == k),
@@ -487,15 +478,14 @@ for (k in quals) {
 }
 ```
 
-# Resultats dels tres mètodes
-Veiem que la regressió logística classifica erròniament alguns altres vins que els altres mètodes classificaven bé; sobretot en els vins de qualitat de 5 i 6. Recollim els resultats dels tres mètodes en una taula de comparació:
+S'observa que la regressió logística classifica erròniament alguns altres vins que els altres mètodes classificaven bé, sobretot en els vins de qualitat de 5 i 6. Es recullen els resultats dels tres mètodes en una taula de comparació:
 
 ```{r}
 # 8. Taula de comparació
 comp.table <- data.frame(ERR.lda = err.lda,
                          ERR.qda = err.qda,
                          ERR.log = err.log)
-comp.table
+print(comp.table)
 
 print("Qualitat de tots els vins")
 summary(as.factor(quality))
