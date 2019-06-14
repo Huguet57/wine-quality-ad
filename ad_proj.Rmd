@@ -1,7 +1,7 @@
 ---
 title: 'PROJECTE ANÀLISI DE DADES: Wine Quality'
 author: "David Anglada Rotger i Andreu Huguet Segarra"
-date: "17/5/2019"
+date: "15/6/2019"
 output:
   pdf_document:
     number_sections: yes
@@ -44,7 +44,7 @@ Pel que fa als *missing values*, no n'hi ha cap en aquesta base de dades, tal i 
 
 Abans de res, s'observen les característiques de cada una de les variables i els resultats són els següents.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 Xid <- read.csv2("./data/winequality-red.csv")
 X <- data.frame(Xid[,-1])
 summary(X[,-12])
@@ -150,7 +150,7 @@ Tot i així, es veur representada molt representada la correlació negativa de l
 
 A continuació, s'analitzen els coeficients dels components principals, per veure quines variables expliquen més.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 pca.out$loadings
 ```
 
@@ -184,7 +184,7 @@ En ambdós casos, s'assumeix que les variables dels grups segueixen una distribu
 
 Com s'ha dit anteriorment, abans de poder estudiar si hi ha diferències estadísticament significatives entre grups de dades, hem d'estar segurs que podem assumir normalitat en les variables. Per això es comprovarà que la relació entre les distàncies de les variables i els quartils corresponents a una $\chi^2_p$ amb $p$ graus de llibertat (número de variables, 11 en aquest cas) sigui lineal.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 dbs <- scale(db, scale = F)
 dbcovs <- cov(db)
 
@@ -202,7 +202,7 @@ S'observa que la relació no és perfectament lineal però ho és suficient per 
 
 Abans de res, s'han dividit les dades en dos grups (qualitat major o menor que 5) i en tres grups (rangs de qualitat de 3-4, 5-6 i 7-8).
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 db.menor5 <- db[which(X$quality <= 5),]
 db.major5 <- db[-which(X$quality <= 5),]
 
@@ -215,21 +215,21 @@ db.quality78 <- db[which(X$quality > 6),]
 
 En primer lloc, es realitza en test de Hotelling assumint igualtat de variàncies entre els dos grups de dades: un en què els vins tenen qualitat inferior o igual a 5 i un altre on tenen qualitat major que 5.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 library(ICSNP)
 HotellingsT2(db.menor5, db.major5)
 ```
 
 Donat que s'obté un *p-value* < 0.05, s'ha de rebutjar la hipòtesi nula i, per tant, hi ha diferències estadísticament significatives entre les mitjanes dels vins de qualitat 5 o inferior amb els dels vins de qualitat 6 o major. Aquest resultat era d'esperar, ja que en cas contrari, voldria dir que la valoració dels jutges és 100% subjectiva, cosa que sabem que no és del tot certa. Observant les mitjanes, es comprova el resultat. S'observa que sobretot es difereix en les variables $\texttt{volatile.acidity}$, $\texttt{alcohol}$ i $\texttt{total.sulfur.dioxide}$.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 colMeans(db.menor5)
 colMeans(db.major5)
 ```
 
 Es calcula a continuació la $T^2$ sense assumir igualtat de variàncies. S'observa que el valor obtingut és força diferent a l'anterior i, per tant, es realitza un test $t$-student sense considerar les variàncies iguals.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 (T2 <- (colMeans(db.menor5) - colMeans(db.major5))%*%solve(cov(db.menor5)/nrow(db.menor5) + cov(db.major5)/nrow(db.major5), diag(11))%*%(colMeans(db.menor5) - colMeans(db.major5)))
 ```
 
@@ -315,11 +315,11 @@ on $n_{ij}$ representa els valors de la classe $i$ classificats com a valors de 
 
 ## Anàlisi discriminant de les nostres dades
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 quality <- X$quality
 ```
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 Xs <- scale(db, center = T, scale = T)
 ```
 
@@ -334,7 +334,7 @@ bin <- ifelse(quality > 5, "Bo", "Dolent")
 
 Ara les dades ja estan preparades per realitzar l'anàlisi discriminant. En primer lloc es suposaran que els grups tenen variàncies iguals i es realitzarà l'anàlisi discriminant lineal. El primer que es fa és calcular-ne el coeficients per veure a quines variables es dóna més importància a l'hora de classificar:
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 # 4. Fem un LDA i donem els coeficients
 library(MASS)
 lda.out <- lda(bin ~ Xs)
@@ -354,7 +354,7 @@ En canvi, les menys importants són, $\texttt{residual.sugar}$, $\texttt{density
 
 Una primera mesura de la precisió de la separació en els dos grups pot ser la matriu de confusió del LDA. Els seus valors són els següents:
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 # 5. Taula de confusió
 lda.pred <- predict(lda.out)
 (lda.ct <- table(bin, lda.pred$class))
@@ -366,7 +366,8 @@ cat("APER de LDA:", err.lda)
 
 L'error de classificació obtingut és del 25% en la discriminació que en principi són bones notícies ja que queda demostrat que hi ha quelcom que separa els vins bons i els vins dolents. Es pot veure de quin caire són els vins que han estat classificats erròniament:
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
+par(mfrow=c(1,2))
 missclass.lda <- which(bin != lda.pred$class)
 cat("Qualitat de tots els vins\n")
 cat("\n")
@@ -385,12 +386,12 @@ En les dades es pot veure que els vins de $\geq 7$ i els de $\leq 4$ són classi
 
 A continuació, es realitza un anàlisi de discriminant quadràtic (es suposarà que els dos grups tenen matrius de covariància diferents) per poder comparar-lo amb el lineal.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 # 6. QDA
 qda.out <- qda(bin ~ Xs)
 ```
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 qda.pred <- predict(qda.out)
 (qda.ct <- table(bin, qda.pred$class))
 err.qda <- 1 -sum(diag(qda.ct))/sum(qda.ct)
@@ -400,7 +401,8 @@ cat("APER de QDA:", err.qda)
 
 Tal i com s'ha fet anteriorment, es calcula la matriu de confusió del model quadràtic i s'observa que el resultat és gairebé igual que amb LDA. Ídem que abans, s'aprofundeix més en els vins mal classificats i els resultats són els següents:
 
-```{r}
+```{r echo = FALSE, warning= FALSE}
+par(mfrow=c(1,2))
 missclass.qda <- which(bin != qda.pred$class)
 print("Qualitat de tots els vins")
 summary(as.factor(quality))
@@ -413,7 +415,7 @@ hist(quality[missclass.qda], xlim = c(3,8))
 
 En efecte, els vins erròniament classificats fora del 5 i 6 ronden els mateixos nombres que en l'anàlisi lineal. És a dir, s'obtenen uns resultats molt similars al LDA.
 
-```{r}
+```{r echo = FALSE, warning= FALSE}
 quals <- sort(unique(quality))
 
 cat("Wines missclassified with LDA and QDA simultanoeusly\n")
@@ -432,7 +434,7 @@ Ara bé, encara que el nombre de classificats erròniament és el mateix, sorpr�
 
 Com a tercera opció per classificar els dos grups de vins, es provarà de fer una **Regressió Logística** (*Logistic Regression*), un model lineal generalitzat que té com a *link function* la funció logaritme i com a distribució de les dades d'entrada, la família binomial.
 
-```{r}
+```{r echo = FALSE, warning= FALSE}
 # 7. Logistic regression
 qual.bin <- quality > 5
 mod <- glm(qual.bin ~ Xs,
@@ -447,7 +449,8 @@ cat("APER de LogReg:", err.log)
 ```
 S'observa que s'obté un percentatge d'error lleugerament superior als altres mètodes però semblant. A continuació, s'analitzen amb més profunditat els valors mal classificats.
 
-```{r}
+```{r echo = FALSE, warning= FALSE}
+par(mfrow=c(1,2))
 missclass.log <- which(qual.bin != (log.pred > 0.5))
 cat("Qualitat de tots els vins\n")
 summary(as.factor(quality))
@@ -460,7 +463,7 @@ hist(quality[missclass.log], xlim = c(3,8))
 
 S'obtenen resultats també similars als dels altres dos mètodes. A continuació es calculen els vins que es classifiquen erròniament en els tres mètodes:
 
-```{r}
+```{r echo = FALSE, warning= FALSE}
 quals <- sort(unique(quality))
 
 cat("Wines missclassified with LDA, QDA simultanoeusly with LogReg\n")
@@ -480,7 +483,7 @@ for (k in quals) {
 
 S'observa que la regressió logística classifica erròniament alguns altres vins que els altres mètodes classificaven bé, sobretot en els vins de qualitat de 5 i 6. Es recullen els resultats dels tres mètodes en una taula de comparació:
 
-```{r}
+```{r echo = FALSE, warning= FALSE}
 # 8. Taula de comparació
 comp.table <- data.frame(ERR.lda = err.lda,
                          ERR.qda = err.qda,
@@ -538,7 +541,7 @@ A continuació, es procedeix a realitzar-se l'anàlisi clúster de les dades amb
 
 En primer lloc, es realitza l'aglomeració jeràrquica de les dades amb 4 tipus diferents de distàncies entre grups (indicades com a títol de cada *plot*). Donat que la variable resposta d'aquest anàlisi és la qualitat del vi, s'haurien de veure agrupacions d'observacions amb qualitats similars, ja que s'entén que si dues observacions tenen la mateixa qualitat, són observacions properes. Així doncs, donat que la qualitat s'ha valorat de l'1 al 10, s'haurien de detectar un nombre menor que 10 de grups clars
 
-```{r echo = FALSE}
+```{r echo = FALSE, warning= FALSE}
 library(colorspace)
 library(viridis)
 library(dendextend)
@@ -548,7 +551,10 @@ cols <- magma(n_quality)
 col_quality <- cols[X$quality]
 ```
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
+
+par(mfrow=c(2,2))
+
 closest.neigh <- as.dendrogram(hclust(D, method = "single"))
 col_quality <- col_quality[order.dendrogram(closest.neigh)]
 closest.neigh <- set(closest.neigh, "labels_colors", col_quality)
@@ -582,7 +588,7 @@ Ara bé, donat que s'han marcat de colors diferents les observacions, tenint en 
 
 A continuació, s'analitza en més profunditat com han agrupat aquests algoritmes, tallant l'arbre en cada cas per formar un nombre en concret de clústers. En el primer cas, el *Single Linkage*, s'ha tallat l'arbre per obtenir 3 clústers i el resultat és bastant dolent, ja que com s'havia comentat abans, es crea un clúster molt grans i dos de molt petits (de 2 i 1 observació). A més, el clústers petits contenen observacions amb qualitat 5, que és la més abundant al clúster gran.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 clusters.closest <- cutree(closest.neigh, 3)
 table(clusters.closest)
 (compar.closest <- table(clusters.closest, X$quality))
@@ -590,7 +596,7 @@ table(clusters.closest)
 
 En el cas del *Complete Linkage*, s'observa que si es creen tres grups, les mides dels grups són bastant similars. Tot i que tots els grups contenen moltes observacions de qualitat 5 i 6, s'observa que les observacions de qualitat més baixa s'han concentrat al clúster 1 i les de qualitat més alta al clúster 2. Així doncs, s'ha realitzat una separació més o menys depenent de la qualitat. A més, en el clúster "d'alta qualitat" és on menys observacions de qualitat 5 hi ha i en el clúster de "baixa qualitat" és on més n'hi ha.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 clusters.farthest <- cutree(farthest.neigh, 3)
 table(clusters.farthest)
 (compar.farthest <- table(clusters.farthest, X$quality))
@@ -598,7 +604,7 @@ table(clusters.farthest)
 
 En el cas de l'*Average Linkage*, es té una situació semblant a la del *Single Linkage*: un grup molt gran i dos de petits amb 3 i 1 observacions. Per tant, no es detecten bé les diferents qualitats del vi.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 clusters.average <- cutree(average.neigh, 3)
 table(clusters.average)
 (compar.average <- table(clusters.average, X$quality))
@@ -606,13 +612,13 @@ table(clusters.average)
 
 Per últim, en el cas del *Ward Criterion*, s'observa que es poden crear 4 grups de tamanys similars. A més, al primer grup es concentren gariebé totes les observacions de pitjor qualitat (3 i 4), en el segon les de qualitat una mica millor (4 i 5), en el tercer és on abunden més les de qualitat mitjana-alta (6 i 7) i en l'últim és on hi ha la gran majora de qualitat alta (7 i 8). Per tant, aquest és el cas on més clarament s'agrupa segons la qualitat del vi.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 clusters.ward <- cutree(ward.neigh, 4)
 table(clusters.ward)
 (compar.ward <- table(clusters.ward, X$quality))
 ```
 Una aproximació de l'error en el cas del *Ward Criterion* és 44,84%.
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 ward.maxs <- apply(compar.ward, 1, which.max)
 ward.misclass <- 0
 for (k in 1:4) ward.misclass <- ward.misclass + sum(compar.ward[k,-ward.maxs[k]])
@@ -625,7 +631,7 @@ En conclusió, si s'estableixen com a criteris de distància entre grups el *War
 
 En segon lloc, s'aplicarà un algoritme no jeràrquic per agrupar les observacions. En concret, s'aplicarà l'algoritme **K-Means** amb $K=4$, per poder-ho comparar amb l'aglomeració jeràrquica amb el criteri de Ward utilitzada anteriorment.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 set.seed(123)
 clusters.kmeans <- kmeans(Xs, 4, nstart = 50)
 clusters.kmeans$size
@@ -649,7 +655,7 @@ Totes aquestes inconsistències en la valoració de cada una de les variables a 
 
 S'observa que, en aquest cas, la variabilitat entre els clusters comparada amb la variabilitat total de les dades és molt més reduïda. De fet, una aproximació de l'error és $ BetweenSS / TSS $, és a dir, la suma de quadrats entre els clústers entre la suma de quadrats total. En aquest cas, és 36,9%, inferior a l'aconseguida en el *Ward's Criterion*. Per tant, amb aquestes dades, *K-Means* funciona millor.
 
-```{r}
+```{r echo = FALSE, warnings = FALSE}
 kmeans.maxs <- apply(compar.kmeans, 1, which.max)
 kmeans.misclass <- 0
 for (k in 1:4) kmeans.misclass <- kmeans.misclass + sum(compar.kmeans[k,-kmeans.maxs[k]])
@@ -669,15 +675,15 @@ Per últim, anem a agrupar les observacions seguint un model amb 4 mixtures, per
 - Grup 4: Qualitat **baixa** (3-4): Els pitjors vins es concentren en aquest grup, tot i que és el grup de tamany menor. Tornem a observar que es valora positivament la variable $\texttt{volatile.acidity}$, igual que en l'altre grup de vins de baixa qualitat. Un detall que cria l'atenció és la valoriació positiva de l'alcohol en aquest grup. Aquest fet s'explica perquè s'observa que també s'han incluït vins de qualitat molt bona en aquest grup, cosa que ha fet que pugi la mitjana.
 
 
-Tal i com s'ha comentat abans, el fet que apareguin vins de qualiat màxima i mínima en un mateix grup és degut a la subjectivitat de la valoració.
+Tal i com s'ha comentat abans, el fet que apareguin vins de qualiat màxima i mínima en un mateix grup és degut a la subjectivitat de la valoració. S'observa a la gràfica següent que no es veu una clara determinació de les variables per a cada un dels grups.
 
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 library(mclust)
 cluster.mix <- Mclust(Xs, 4)
 ```
 
-```{r echo = FALSE}
+```{r echo = FALSE, warnings = FALSE}
 sum <- summary(cluster.mix, parameters = T)
 sum$mean
 plot(cluster.mix, what = "classification")
@@ -690,7 +696,53 @@ for (k in 1:4) mix.misclass <- mix.misclass + sum(compar.mix[k,-mix.maxs[k]])
 ```
 
 
-
 # Conclusions
 
+Tal i com s'havia comentat al principi d'aquest exhaustiu anàlisi, l'objectiu era arribar a detectar les variables fisioquímiques que més podien arribar a influir en la qualitat fina del vi. Després de comparar tots els resultats de les diferents tècniques d'anàlisi multivariant que s'han realitzat sobre les dades, podem concloure que les variables que més influeixen en la qualitat del vi i que, per tant, s'han de mirar de potenciar són:
+
+## Acidesa fixada
+
+Amb els tres primers anàlisis, un s'adona de què $\texttt{fixed.acidity}$ es tracta d'una de les variables importants del vi pels següents motius:
+
+- **PCA**: Variable que té una major representació en el primer component principal de les dades, el que explica més variància. Per tant, és una variable important donat que és de les que més varien en les dades.
+- **Inferència Multivariant**: En els diferents grups en què s'han dividit les dades (s'han dividit per qualitats del vi), la seva mitjana en cada un d'ells sempre presenta diferències estadísticament significatives. És a dir, és una variable que pren valors significativament diferents en els vins bons i en els dolents:
+- **LDA**: És una de les variables que tenia una major importància a l'hora de classificar les dades.
+  
+A més, s'ha deduit que la $\texttt{fixed.acidity}$ tenia una efecte positiu en el vi (és a dir, que com més alt és el seu valor, més bo és el vi) pel següent motiu:
+
+- **Clúster**: En tots els diferents agrupaments realitzats, aquesta variable té una mitjana considerablement elevada dintre dels grups d'alta qualitat.
+
+## Àcid Cítric 
+
+Val a dir que aquesta variable ($\texttt{citric.acid}$) és de les que té una correlació més destacada amb $\texttt{fixed.acidity}$. Ídem que abans, s'ha detectat que és una de les variables importants pels següents motius:
+
+- **PCA**: Variable que té una representació també important en el primer component principal de les dades. Per tant, és una variable important donat que és de les que més varien en les dades.
+- **Inferència Multivariant**: En els diferents grups en què es van dividir les dades (recordem que es van dividir per qualitats del vi), la seva mitjana en cada un d'ells sempre presenta diferències estadísticament significatives.
+  
+A més, $\texttt{citric.acid}$ té una efecte positiu en el vi (és a dir, que com més alt és el seu valor, més bo és el vi), pel següent resultat:
+
+-  **Clúster**: En tots els diferents agrupaments realitzats, aquesta variable tenia una mitjana considerablement elevada dintre dels grups d'alta qualitat.
+
+## Acidesa volàtil
+
+També s'ha vist que $\texttt{volatile.acid}$ és una variable important, però, a diferència de les altres dues aquesta té un petit efecte diferent. Tot i així, se'n presenten els motius:
+
+- **Inferència Multivariant**: Igual que les anteriors, presentava sempre diferències estadísticament significatives en mitjana entre els grups de diferents qualitats de vins.
+- **LDA**: És una de les variables que més en compte es té per realitzar la classificació.
+  
+Ara bé, en aquest cas $\texttt{volatile.acid}$ té un efecte negatiu en els vins:
+
+- **Clúster**: En tots els agrupaments realitzats, aquesta variable tenia valors considerablement importants en els grups de vins de baixa qualitat.
+   
+
+## Altres consideracions
+
+Per contra, també cal remarcar que la variable que menys importànica té en la qualitat del vi és $\texttt{residual.sugar}$, ja que no presentava diferències estadísticament significatives en mitjana en els diferents grups realitzats i en el PCA no tenia representació en els components fins al tercer.
+
+En conclusió, un dels aspectes que sembla marcar la decisió de l'enòleg a l'hora de valorar un vi és l'acidesa i la presència d'àcids en aquests. Així doncs, es recomana a les indústries productores mirar de potenciar aquestes variables.
+
 # Referències
+
+- Apunts de l'assignatura d'*Anàlisi de Dades* del Grau en Ciència i Enginyeria de Dades.
+- P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. *Modeling wine preferences by data mining from physicochemical properties*. In Decision Support Systems, Elsevier, 47(4):547-553, 2009.
+- Cuadras, C. (2008) *Nuevos métodos de Análisis Multivariante*.
