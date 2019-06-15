@@ -743,6 +743,11 @@ En conclusió, un dels aspectes que sembla marcar la decisió de l'enòleg a l'h
 
 # Referències
 
+S'han consultat aquests resultats amb una enòloga i ha confirmat la importància de l'**acidesa volàtil** i de l'**àcid cítric** en un vi a l'hora de determinar la seva qualitat. Ara bé, ha dit que l'**acidesa fixada** no era massa important. Donat que aquesta útlima variable està bastant correlacionada amb l'àcid cítric (tal i com es veu en el PCA) i que és una de les variables amb major variància, té sentit que surti com una de les variables importants estadísticament, tot i que després a la pràctica no ho sigui tant. A part d'això, també ha comentat que l'**alcohol** també és una variable important. Tot i no haver-ho comentat, l'alcohol també ha tingut resultats significatius en l'Inferència multivariant (diferències significatives en mitjana entre els grups de vins bons i vins dolents) i era una de les variables que més es tenia en compte a l'hora de classificar en LDA.
+
+
+Altres referències consultades són:
+
 - Apunts de l'assignatura d'*Anàlisi de Dades* del Grau en Ciència i Enginyeria de Dades.
 - P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. *Modeling wine preferences by data mining from physicochemical properties*. In Decision Support Systems, Elsevier, 47(4):547-553, 2009.
 - Cuadras, C. (2008) *Nuevos métodos de Análisis Multivariante*.
